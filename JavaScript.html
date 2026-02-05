@@ -1,0 +1,1933 @@
+<script>
+/**
+ * Frontend JavaScript for Classroom Observation System
+ * Handles UI interactions, API calls, and state management
+ */
+
+// ============================================================================
+// APPLICATION STATE
+// ============================================================================
+
+const App = {
+  // Current scheduling state
+  scheduling: {
+    grade: null,
+    teacher: null,
+    date: null,
+    slots: [],
+    selectedPeriods: [],
+    needsSub: false
+  },
+  
+  // Cached data
+  cache: {
+    teachers: {},
+    observations: null,
+    dashboardData: null
+  },
+  
+  // Current view
+  currentView: null
+};
+
+// ============================================================================
+// INITIALIZATION
+// ============================================================================
+
+document.addEventListener('DOMContentLoaded', function() {
+  App.init();
+});
+
+App.init = function() {
+  // Set up navigation based on user role
+  this.setupNavigation();
+  
+  // Apply adaptive logo sizing
+  this.applyLogoSizing();
+  
+  // Show appropriate initial view - always start on dashboard/overview, not admin
+  if (USER.role === 'admin' || USER.role === 'teacher') {
+    this.showView('dashboard');
+  } else if (USER.role === 'readonly') {
+    this.showView('readonly');
+  }
+  
+  // Update role badge styling
+  const roleBadge = document.getElementById('user-role');
+  if (USER.role === 'admin') {
+    roleBadge.classList.add('admin');
+  }
+  
+  // Hide loading overlay
+  setTimeout(() => {
+    document.getElementById('loading-overlay').classList.add('hidden');
+  }, 500);
+};
+
+/**
+ * Apply adaptive sizing to school logo based on text length
+ */
+App.applyLogoSizing = function(logoElement) {
+  const logo = logoElement || document.getElementById('school-logo');
+  if (!logo) return;
+  
+  const text = logo.textContent.trim();
+  const len = text.length;
+  
+  // Remove existing size classes
+  logo.classList.remove('short', 'medium', 'long', 'extra-long');
+  
+  // Apply appropriate size class
+  if (len <= 4) {
+    logo.classList.add('short');
+  } else if (len <= 8) {
+    logo.classList.add('medium');
+  } else if (len <= 12) {
+    logo.classList.add('long');
+  } else {
+    logo.classList.add('extra-long');
+  }
+};
+
+App.setupNavigation = function() {
+  const nav = document.getElementById('main-nav');
+  nav.innerHTML = '';
+  
+  const navItems = [];
+  
+  if (USER.role === 'teacher' || USER.role === 'admin') {
+    navItems.push({ id: 'dashboard', label: 'My Dashboard', view: 'dashboard' });
+    // Removed "Schedule Observation" - button exists on dashboard page
+  }
+  
+  if (USER.role === 'admin') {
+    navItems.push({ id: 'admin', label: 'Admin Dashboard', view: 'admin' });
+  }
+  
+  if (USER.role === 'readonly') {
+    navItems.push({ id: 'readonly', label: 'Overview', view: 'readonly' });
+  }
+  
+  navItems.forEach(item => {
+    const btn = document.createElement('button');
+    btn.className = 'nav-btn';
+    btn.id = 'nav-' + item.id;
+    btn.textContent = item.label;
+    btn.onclick = () => this.showView(item.view);
+    nav.appendChild(btn);
+  });
+};
+
+// ============================================================================
+// VIEW MANAGEMENT
+// ============================================================================
+
+App.showView = function(viewId) {
+  // Hide all views
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  
+  // Show requested view
+  const view = document.getElementById('view-' + viewId);
+  if (view) {
+    view.classList.add('active');
+    this.currentView = viewId;
+    
+    // Update nav
+    document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+    const navBtn = document.getElementById('nav-' + viewId);
+    if (navBtn) navBtn.classList.add('active');
+    
+    // Load view data
+    this.loadViewData(viewId);
+  }
+};
+
+App.loadViewData = function(viewId) {
+  switch(viewId) {
+    case 'dashboard':
+      this.loadDashboard();
+      break;
+    case 'schedule':
+      this.initScheduleFlow();
+      break;
+    case 'admin':
+      this.loadAdminDashboard();
+      break;
+    case 'sub-requests':
+      this.loadSubRequests();
+      break;
+    case 'all-observations':
+      this.loadAllObservations();
+      break;
+    case 'audit-log':
+      this.loadAuditLog();
+      break;
+    case 'prep-periods':
+      this.loadPrepPeriods();
+      break;
+    case 'access-requests':
+      this.loadAccessRequests();
+      break;
+    case 'bulk-import':
+      // No initial load needed
+      break;
+    case 'archive-reset':
+      this.loadArchiveStatus();
+      break;
+    case 'branding':
+      this.loadBrandingSettings();
+      break;
+    case 'readonly':
+      this.loadReadOnlyDashboard();
+      break;
+  }
+};
+
+// ============================================================================
+// TEACHER DASHBOARD
+// ============================================================================
+
+App.loadDashboard = function() {
+  // Load observation status
+  this.showLoading('status-card');
+  
+  google.script.run
+    .withSuccessHandler(status => {
+      if (!status) {
+        this.toast('Failed to load status', 'error');
+        return;
+      }
+      if (status.error) {
+        this.toast(status.error, 'error');
+        return;
+      }
+      
+      // Update header to show deadline instead of month
+      document.getElementById('current-month').textContent = 'Due: ' + (status.deadline || 'May 22, 2025');
+      document.querySelector('#observation-count .metric-value').textContent = status.count || 0;
+      
+      const indicator = document.getElementById('requirement-status');
+      if (status.hasMetRequirement) {
+        indicator.className = 'status-indicator met';
+        indicator.innerHTML = '<strong>✓ Requirement Met!</strong><br>Great job completing your observation for ' + (status.schoolYear || 'this school year') + '.';
+      } else if (status.isPastDeadline) {
+        indicator.className = 'status-indicator not-met';
+        indicator.innerHTML = '<strong>⚠ Deadline Passed</strong><br>The observation deadline has passed. Please contact your administrator.';
+      } else {
+        indicator.className = 'status-indicator not-met';
+        var daysText = status.daysRemaining === 1 ? '1 day' : (status.daysRemaining + ' days');
+        indicator.innerHTML = '<strong>Observation Needed</strong><br>' + daysText + ' remaining to complete your observation.';
+      }
+    })
+    .withFailureHandler(err => this.toast('Failed to load status: ' + (err.message || err), 'error'))
+    .getMyObservationStatus();
+  
+  // Load my observations
+  this.loadMyObservations();
+};
+
+App.loadMyObservations = function() {
+  const container = document.getElementById('my-observations-list');
+  container.innerHTML = '<p class="empty-message">Loading...</p>';
+  
+  google.script.run
+    .withSuccessHandler(observations => {
+      if (!observations) {
+        container.innerHTML = '<p class="empty-message">Could not load observations</p>';
+        return;
+      }
+      if (observations.error) {
+        container.innerHTML = '<p class="empty-message">' + observations.error + '</p>';
+        return;
+      }
+      
+      if (!observations.length) {
+        container.innerHTML = '<p class="empty-message">No upcoming observations scheduled.</p>';
+        return;
+      }
+      
+      // Filter to upcoming only
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const upcoming = observations.filter(o => {
+        const obsDate = new Date(o.date + 'T00:00:00');
+        return obsDate >= today && o.status !== 'canceled';
+      });
+      
+      if (!upcoming.length) {
+        container.innerHTML = '<p class="empty-message">No upcoming observations scheduled.</p>';
+        return;
+      }
+      
+      container.innerHTML = upcoming.map(obs => this.renderObservationItem(obs)).join('');
+    })
+    .withFailureHandler(err => {
+      container.innerHTML = '<p class="empty-message">Failed to load observations: ' + (err.message || err) + '</p>';
+    })
+    .getMyObservations();
+};
+
+App.renderObservationItem = function(obs) {
+  const statusClass = obs.status === 'canceled' ? 'canceled' : 
+                      obs.status === 'pending_sub' ? 'pending' : '';
+  const statusBadge = this.getStatusBadge(obs.status);
+  
+  const formattedDate = this.formatDate(obs.date);
+  const periods = Array.isArray(obs.periods) ? obs.periods.join(', ') : obs.periods;
+  
+  return `
+    <div class="observation-item ${statusClass}">
+      <div class="observation-info">
+        <div class="obs-teacher">${obs.teacherName} - Room ${obs.room}</div>
+        <div class="obs-details">${formattedDate} • Periods ${periods}</div>
+      </div>
+      <div class="observation-actions">
+        ${statusBadge}
+        ${obs.status !== 'canceled' ? `
+          <button class="btn btn-small btn-secondary" onclick="App.rescheduleObservation('${obs.id}')">Reschedule</button>
+          <button class="btn btn-small btn-danger" onclick="App.confirmCancelObservation('${obs.id}')">Cancel</button>
+        ` : ''}
+      </div>
+    </div>
+  `;
+};
+
+App.getStatusBadge = function(status) {
+  const labels = {
+    'confirmed': 'Confirmed',
+    'pending_sub': 'Awaiting Sub',
+    'canceled': 'Canceled'
+  };
+  const classes = {
+    'confirmed': 'status-confirmed',
+    'pending_sub': 'status-pending',
+    'canceled': 'status-canceled'
+  };
+  return `<span class="status-badge ${classes[status] || ''}">${labels[status] || status}</span>`;
+};
+
+// ============================================================================
+// SCHEDULE OBSERVATION FLOW
+// ============================================================================
+
+App.startNewObservation = function() {
+  this.showView('schedule');
+};
+
+App.initScheduleFlow = function() {
+  // Reset state
+  this.scheduling = {
+    grade: null,
+    teacher: null,
+    date: null,
+    slots: [],
+    selectedPeriods: [],
+    needsSub: false
+  };
+  
+  // Reset steps
+  this.goToStep(1);
+  
+  // Populate grade buttons
+  const gradeButtons = document.getElementById('grade-buttons');
+  gradeButtons.innerHTML = CONFIG.grades.map(g => `
+    <button class="grade-btn" data-grade="${g}" onclick="App.selectGrade(${g})">
+      Grade ${g}
+    </button>
+  `).join('');
+  
+  // Pre-select user's grade if teacher
+  if (USER.grade) {
+    // Don't auto-select, just highlight the default option
+  }
+  
+  // Set date min to tomorrow
+  const dateInput = document.getElementById('observation-date');
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  dateInput.min = this.formatDateISO(tomorrow);
+  dateInput.value = '';
+};
+
+App.goToStep = function(stepNum) {
+  // Update step indicator
+  document.querySelectorAll('.step').forEach((s, i) => {
+    s.classList.remove('active', 'completed');
+    if (i + 1 < stepNum) s.classList.add('completed');
+    if (i + 1 === stepNum) s.classList.add('active');
+  });
+  
+  // Show/hide step content
+  for (let i = 1; i <= 5; i++) {
+    const step = document.getElementById('step-' + i);
+    step.style.display = i === stepNum ? 'block' : 'none';
+  }
+};
+
+App.selectGrade = function(grade) {
+  this.scheduling.grade = grade;
+  
+  // Update UI
+  document.querySelectorAll('.grade-btn').forEach(btn => {
+    btn.classList.toggle('selected', Number(btn.dataset.grade) === grade);
+  });
+  
+  // Load teachers for grade
+  this.loadTeachersForGrade(grade);
+  
+  // Go to step 2
+  setTimeout(() => this.goToStep(2), 300);
+};
+
+App.loadTeachersForGrade = function(grade) {
+  const container = document.getElementById('teacher-grid');
+  container.innerHTML = '<p class="empty-message">Loading teachers...</p>';
+  
+  google.script.run
+    .withSuccessHandler(teachers => {
+      if (!teachers) {
+        container.innerHTML = '<p class="empty-message">Failed to load teachers (no data returned)</p>';
+        return;
+      }
+      if (teachers.error) {
+        container.innerHTML = '<p class="empty-message">' + teachers.error + '</p>';
+        return;
+      }
+      
+      // Filter out self
+      const available = teachers.filter(t => t.id !== USER.teacherId);
+      
+      if (!available.length) {
+        container.innerHTML = '<p class="empty-message">No teachers available in this grade.</p>';
+        return;
+      }
+      
+      container.innerHTML = available.map(t => `
+        <div class="teacher-card" data-id="${t.id}" onclick="App.selectTeacher('${t.id}', '${t.name}', '${t.room}', ${t.grade})">
+          <div class="teacher-name">${t.name}</div>
+          <div class="teacher-room">Room ${t.room}</div>
+        </div>
+      `).join('');
+    })
+    .withFailureHandler(err => {
+      container.innerHTML = '<p class="empty-message">Failed to load teachers: ' + (err.message || err) + '</p>';
+    })
+    .getTeachersByGrade(grade);
+};
+
+App.selectTeacher = function(id, name, room, grade) {
+  this.scheduling.teacher = { id, name, room, grade };
+  
+  // Update UI
+  document.querySelectorAll('.teacher-card').forEach(card => {
+    card.classList.toggle('selected', card.dataset.id === id);
+  });
+  
+  // Go to step 3
+  setTimeout(() => this.goToStep(3), 300);
+};
+
+App.onDateSelected = function(dateStr) {
+  if (!dateStr) return;
+  
+  // Check if weekend
+  const date = new Date(dateStr + 'T00:00:00');
+  const day = date.getDay();
+  if (day === 0 || day === 6) {
+    this.toast('Cannot schedule observations on weekends', 'error');
+    document.getElementById('observation-date').value = '';
+    return;
+  }
+  
+  this.scheduling.date = dateStr;
+  
+  // Load available slots
+  this.loadAvailableSlots();
+  
+  // Go to step 4
+  setTimeout(() => this.goToStep(4), 300);
+};
+
+App.loadAvailableSlots = function() {
+  const container = document.getElementById('time-grid');
+  container.innerHTML = '<p class="empty-message">Loading available times...</p>';
+  
+  google.script.run
+    .withSuccessHandler(result => {
+      if (!result) {
+        container.innerHTML = '<p class="empty-message">Failed to load time slots (no data)</p>';
+        return;
+      }
+      if (result.error) {
+        container.innerHTML = '<p class="empty-message">' + result.error + '</p>';
+        return;
+      }
+      
+      if (!result.slots || !result.slots.length) {
+        container.innerHTML = '<p class="empty-message">No time slots available</p>';
+        return;
+      }
+      
+      this.scheduling.slots = result.slots;
+      this.scheduling.selectedPeriods = [];
+      
+      container.innerHTML = result.slots.map(slot => {
+        const unavailableClass = !slot.available ? 'unavailable' : '';
+        const teacherUnavailableClass = slot.isUnavailable ? 'teacher-unavailable' : '';
+        
+        return `
+          <div class="time-slot ${unavailableClass} ${teacherUnavailableClass}" 
+               data-period="${slot.period}"
+               onclick="${slot.available ? `App.togglePeriod(${slot.period})` : ''}">
+            <div>
+              <span class="slot-period">Period ${slot.period}</span>
+              ${slot.isUnavailable ? ' <em>(Unavailable)</em>' : ''}
+            </div>
+            <div>
+              <span class="slot-time">${slot.startTime} - ${slot.endTime}</span>
+              ${slot.reason ? `<br><span class="slot-reason">${slot.reason}</span>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    })
+    .withFailureHandler(err => {
+      container.innerHTML = '<p class="empty-message">Failed to load time slots: ' + (err.message || err) + '</p>';
+    })
+    .getAvailableSlots(this.scheduling.teacher.id, this.scheduling.date);
+};
+
+App.togglePeriod = function(period) {
+  const idx = this.scheduling.selectedPeriods.indexOf(period);
+  if (idx > -1) {
+    this.scheduling.selectedPeriods.splice(idx, 1);
+  } else {
+    this.scheduling.selectedPeriods.push(period);
+  }
+  this.scheduling.selectedPeriods.sort((a, b) => a - b);
+  
+  // Update UI
+  document.querySelectorAll('.time-slot').forEach(slot => {
+    const p = Number(slot.dataset.period);
+    slot.classList.toggle('selected', this.scheduling.selectedPeriods.includes(p));
+  });
+  
+  // If at least one period selected, show continue button or auto-advance
+  if (this.scheduling.selectedPeriods.length > 0) {
+    // Wait a moment then advance to review
+    clearTimeout(this._stepTimeout);
+    this._stepTimeout = setTimeout(() => {
+      if (this.scheduling.selectedPeriods.length > 0) {
+        this.goToReview();
+      }
+    }, 1000);
+  }
+};
+
+App.goToReview = function() {
+  const s = this.scheduling;
+  
+  // Populate review
+  document.getElementById('review-teacher').textContent = s.teacher.name;
+  document.getElementById('review-room').textContent = s.teacher.room;
+  document.getElementById('review-grade').textContent = 'Grade ' + s.teacher.grade;
+  document.getElementById('review-date').textContent = this.formatDate(s.date);
+  document.getElementById('review-time').textContent = 'Period(s) ' + s.selectedPeriods.join(', ');
+  
+  // Reset sub checkbox
+  document.getElementById('needs-sub').checked = false;
+  document.getElementById('sub-notice').style.display = 'none';
+  this.scheduling.needsSub = false;
+  
+  // Check if requirement already met
+  google.script.run
+    .withSuccessHandler(status => {
+      const notice = document.getElementById('already-met-notice');
+      if (status && status.hasMetRequirement) {
+        notice.style.display = 'block';
+      } else {
+        notice.style.display = 'none';
+      }
+    })
+    .withFailureHandler(err => {
+      // Silently fail - not critical
+      document.getElementById('already-met-notice').style.display = 'none';
+    })
+    .getMyObservationStatus();
+  
+  this.goToStep(5);
+};
+
+App.onSubToggle = function(checked) {
+  this.scheduling.needsSub = checked;
+  document.getElementById('sub-notice').style.display = checked ? 'block' : 'none';
+  
+  // Show short-notice warning but still allow the request
+  if (checked) {
+    const obsDate = new Date(this.scheduling.date + 'T00:00:00');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const daysUntil = Math.floor((obsDate - today) / (1000 * 60 * 60 * 24));
+    
+    if (daysUntil < 2) {
+      this.toast('Note: This is a short-notice sub request. Approval may be limited.', 'warning');
+    }
+  }
+};
+
+App.submitObservation = function() {
+  var self = this;
+  const s = this.scheduling;
+  
+  if (!s.teacher || !s.date || s.selectedPeriods.length === 0) {
+    this.toast('Please complete all steps', 'error');
+    return;
+  }
+  
+  // Show loading
+  const btn = document.querySelector('#step-5 .btn-primary');
+  btn.disabled = true;
+  btn.textContent = 'Submitting...';
+  
+  const data = {
+    teacherId: s.teacher.id,
+    teacherName: s.teacher.name,
+    room: s.teacher.room,
+    grade: s.teacher.grade,
+    date: s.date,
+    periods: s.selectedPeriods,
+    needsSub: s.needsSub
+  };
+  
+  google.script.run
+    .withSuccessHandler(function(result) {
+      btn.disabled = false;
+      btn.textContent = 'Confirm Observation';
+      
+      if (!result) {
+        self.toast('Failed to create observation', 'error');
+        return;
+      }
+      
+      if (result.error) {
+        self.toast(result.error, 'error');
+        return;
+      }
+      
+      // Show success modal with form link
+      self.showObservationConfirmationModal(result);
+    })
+    .withFailureHandler(function(err) {
+      btn.disabled = false;
+      btn.textContent = 'Confirm Observation';
+      self.toast('Failed to create observation: ' + (err.message || err), 'error');
+    })
+    .createObservation(data);
+};
+
+// ============================================================================
+// CANCEL / RESCHEDULE
+// ============================================================================
+
+App.confirmCancelObservation = function(id) {
+  App.showModal(
+    'Cancel Observation',
+    '<p>Are you sure you want to cancel this observation?</p>',
+    [
+      { label: 'Keep Observation', class: 'btn-secondary', action: function() { App.closeModal(); } },
+      { label: 'Cancel It', class: 'btn-danger', action: function() { App.cancelObservation(id); } }
+    ]
+  );
+};
+
+App.cancelObservation = function(id) {
+  // Disable all modal buttons
+  document.querySelectorAll('#modal-footer .btn').forEach(function(btn) {
+    btn.disabled = true;
+    btn.style.opacity = '0.6';
+  });
+  App.toast('Processing...', 'info');
+  
+  google.script.run
+    .withSuccessHandler(function(result) {
+      App.closeModal();
+      if (!result) {
+        App.toast('Failed to cancel observation', 'error');
+        return;
+      }
+      if (result.error) {
+        App.toast(result.error, 'error');
+        return;
+      }
+      App.toast(result.message || 'Observation canceled', 'success');
+      App.loadMyObservations();
+    })
+    .withFailureHandler(function(err) {
+      App.closeModal();
+      App.toast('Failed to cancel: ' + (err.message || err), 'error');
+    })
+    .cancelObservation(id);
+};
+
+App.rescheduleObservation = function(id) {
+  App.toast('To reschedule, cancel this observation and create a new one.', 'warning');
+};
+
+// ============================================================================
+// OBSERVATION CONFIRMATION & FORM
+// ============================================================================
+
+App.showObservationConfirmationModal = function(result) {
+  var observationId = result.observationId || result.id;
+  
+  var bodyHtml = '<div style="text-align: center;">' +
+    '<div style="font-size: 48px; margin-bottom: 16px;">✅</div>' +
+    '<p style="font-size: 1.1rem; margin-bottom: 20px;">' + (result.message || 'Observation scheduled successfully!') + '</p>' +
+    '<div id="confirmation-actions" style="margin-top: 20px;">' +
+    '<p style="color: #666; margin-bottom: 16px;">Would you like to receive your observation form and calendar invite?</p>' +
+    '<button class="btn btn-gold btn-large" id="send-confirmation-btn" style="width: 100%;">📧 Send Confirmation & Form</button>' +
+    '</div>' +
+    '<div id="confirmation-result" style="display: none; margin-top: 20px;"></div>' +
+    '</div>';
+  
+  App.showModal('Observation Scheduled!', bodyHtml, [
+    { label: 'Close', class: 'btn-secondary', action: function() { 
+      App.closeModal(); 
+      App.showView('dashboard'); 
+    }}
+  ]);
+  
+  // Add click handler for send button
+  setTimeout(function() {
+    var sendBtn = document.getElementById('send-confirmation-btn');
+    if (sendBtn) {
+      sendBtn.onclick = function() {
+        App.sendObservationConfirmation(observationId);
+      };
+    }
+  }, 100);
+};
+
+App.sendObservationConfirmation = function(observationId) {
+  var btn = document.getElementById('send-confirmation-btn');
+  var resultDiv = document.getElementById('confirmation-result');
+  var actionsDiv = document.getElementById('confirmation-actions');
+  
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Sending...';
+  }
+  
+  google.script.run
+    .withSuccessHandler(function(result) {
+      if (!result) {
+        if (resultDiv) {
+          resultDiv.style.display = 'block';
+          resultDiv.innerHTML = '<p style="color: #ef4444;">Failed to send confirmation</p>';
+        }
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = '📧 Send Confirmation & Form';
+        }
+        return;
+      }
+      
+      if (result.error) {
+        if (resultDiv) {
+          resultDiv.style.display = 'block';
+          resultDiv.innerHTML = '<p style="color: #ef4444;">' + result.error + '</p>';
+        }
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = '📧 Send Confirmation & Form';
+        }
+        return;
+      }
+      
+      // Success - show form link
+      if (actionsDiv) actionsDiv.style.display = 'none';
+      if (resultDiv) {
+        resultDiv.style.display = 'block';
+        resultDiv.innerHTML = 
+          '<div style="background: #dcfce7; padding: 16px; border-radius: 8px; margin-bottom: 16px;">' +
+          '<p style="color: #166534; font-weight: bold; margin-bottom: 8px;">✓ ' + (result.message || 'Confirmation sent!') + '</p>' +
+          '<p style="color: #166534; font-size: 0.9rem;">Check your email for the confirmation and calendar invite.</p>' +
+          '</div>' +
+          '<div style="background: #f8f9fa; padding: 16px; border-radius: 8px;">' +
+          '<p style="font-weight: bold; margin-bottom: 12px;">📋 Observation Form</p>' +
+          '<p style="font-size: 0.9rem; color: #666; margin-bottom: 12px;">Click below to get your copy of the observation form:</p>' +
+          '<a href="' + result.formLink + '" target="_blank" class="btn btn-gold" style="display: block; text-align: center; text-decoration: none;">Open Observation Form</a>' +
+          '</div>';
+      }
+    })
+    .withFailureHandler(function(err) {
+      if (resultDiv) {
+        resultDiv.style.display = 'block';
+        resultDiv.innerHTML = '<p style="color: #ef4444;">Error: ' + (err.message || err) + '</p>';
+      }
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = '📧 Send Confirmation & Form';
+      }
+    })
+    .sendObservationConfirmation(observationId);
+};
+
+App.getObservationFormLink = function() {
+  google.script.run
+    .withSuccessHandler(function(result) {
+      if (result && result.link) {
+        App.showModal('Observation Form', 
+          '<p>Click below to get your copy of the observation form:</p>' +
+          '<div style="margin-top: 20px; text-align: center;">' +
+          '<a href="' + result.link + '" target="_blank" class="btn btn-gold btn-large">📋 Get Observation Form</a>' +
+          '</div>',
+          [{ label: 'Close', class: 'btn-secondary', action: function() { App.closeModal(); } }]
+        );
+      }
+    })
+    .getObservationFormLink();
+};
+
+// ============================================================================
+// ADMIN DASHBOARD
+// ============================================================================
+
+App.loadAdminDashboard = function() {
+  google.script.run
+    .withSuccessHandler(data => {
+      if (!data) {
+        this.toast('Failed to load dashboard data', 'error');
+        return;
+      }
+      if (data.error) {
+        this.toast(data.error, 'error');
+        return;
+      }
+      
+      // Update stats
+      document.getElementById('stat-today').textContent = data.todayObservations || 0;
+      document.getElementById('stat-week').textContent = data.weeklyObservations || 0;
+      document.getElementById('stat-month').textContent = data.monthlyObservations || 0;
+      document.getElementById('stat-pending').textContent = data.pendingSubRequests || 0;
+      
+      // Highlight pending if any
+      const pendingCard = document.getElementById('stat-pending-card');
+      if (data.pendingSubRequests > 0) {
+        pendingCard.classList.add('alert');
+      } else {
+        pendingCard.classList.remove('alert');
+      }
+      
+      // Today's schedule
+      const scheduleContainer = document.getElementById('today-schedule');
+      if (!data.todaySchedule || data.todaySchedule.length === 0) {
+        scheduleContainer.innerHTML = '<p class="empty-message">No observations scheduled for today.</p>';
+      } else {
+        scheduleContainer.innerHTML = `
+          <table>
+            <thead>
+              <tr><th>Time</th><th>Observer</th><th>Teacher</th><th>Room</th></tr>
+            </thead>
+            <tbody>
+              ${data.todaySchedule.map(o => `
+                <tr>
+                  <td>Period(s) ${o.time}</td>
+                  <td>${o.observer}</td>
+                  <td>${o.teacher}</td>
+                  <td>${o.room}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+      }
+      
+      // Teachers not observed - organized by grade
+      const teachersContainer = document.getElementById('teachers-not-observed');
+      const countSpan = document.getElementById('teachers-not-observed-count');
+      
+      if (!data.teachersNotObservedList || data.teachersNotObservedList.length === 0) {
+        teachersContainer.innerHTML = '<p class="empty-message">All teachers have completed their observation! 🎰</p>';
+        countSpan.textContent = '';
+      } else {
+        countSpan.textContent = `(${data.teachersNotObservedList.length})`;
+        
+        // Group teachers by grade
+        const byGrade = { 6: [], 7: [], 8: [] };
+        
+        data.teachersNotObservedList.forEach(t => {
+          // Get all grades for this teacher
+          const grades = t.grades || [t.grade];
+          grades.forEach(g => {
+            if (byGrade[g]) {
+              // Check if teacher already added to this grade
+              if (!byGrade[g].some(existing => existing.id === t.id)) {
+                byGrade[g].push(t);
+              }
+            }
+          });
+        });
+        
+        teachersContainer.innerHTML = `
+          <div class="grade-column">
+            <h4>Grade 6</h4>
+            ${byGrade[6].length > 0 
+              ? byGrade[6].map(t => `
+                  <div class="teacher-item">
+                    <div class="teacher-name">${t.name}</div>
+                    <div class="teacher-grades">Grades: ${(t.grades || [t.grade]).join(', ')}</div>
+                  </div>
+                `).join('')
+              : '<p class="empty-column">All complete ✓</p>'
+            }
+          </div>
+          <div class="grade-column">
+            <h4>Grade 7</h4>
+            ${byGrade[7].length > 0 
+              ? byGrade[7].map(t => `
+                  <div class="teacher-item">
+                    <div class="teacher-name">${t.name}</div>
+                    <div class="teacher-grades">Grades: ${(t.grades || [t.grade]).join(', ')}</div>
+                  </div>
+                `).join('')
+              : '<p class="empty-column">All complete ✓</p>'
+            }
+          </div>
+          <div class="grade-column">
+            <h4>Grade 8</h4>
+            ${byGrade[8].length > 0 
+              ? byGrade[8].map(t => `
+                  <div class="teacher-item">
+                    <div class="teacher-name">${t.name}</div>
+                    <div class="teacher-grades">Grades: ${(t.grades || [t.grade]).join(', ')}</div>
+                  </div>
+                `).join('')
+              : '<p class="empty-column">All complete ✓</p>'
+            }
+          </div>
+        `;
+      }
+    })
+    .withFailureHandler(err => {
+      this.toast('Failed to load dashboard: ' + (err.message || err), 'error');
+    })
+    .getDashboardData();
+};
+
+// ============================================================================
+// SUBSTITUTE REQUESTS (ADMIN)
+// ============================================================================
+
+App.loadSubRequests = function() {
+  const container = document.getElementById('sub-requests-list');
+  container.innerHTML = '<p class="empty-message">Loading...</p>';
+  
+  google.script.run
+    .withSuccessHandler(requests => {
+      if (!requests) {
+        container.innerHTML = '<p class="empty-message">Failed to load requests</p>';
+        return;
+      }
+      if (requests.error) {
+        container.innerHTML = '<p class="empty-message">' + requests.error + '</p>';
+        return;
+      }
+      
+      if (!requests.length) {
+        container.innerHTML = '<p class="empty-message">No pending substitute requests.</p>';
+        return;
+      }
+      
+      container.innerHTML = requests.map(r => `
+        <div class="request-item">
+          <div class="observation-info">
+            <div class="obs-teacher">${r.requesterName}</div>
+            <div class="obs-details">${this.formatDate(r.date)} • Periods ${Array.isArray(r.periods) ? r.periods.join(', ') : r.periods}</div>
+          </div>
+          <div class="observation-actions">
+            <button class="btn btn-small btn-success" onclick="App.showApproveModal('${r.id}', '${r.requesterName}')">Approve</button>
+            <button class="btn btn-small btn-danger" onclick="App.showDenyModal('${r.id}')">Deny</button>
+          </div>
+        </div>
+      `).join('');
+    })
+    .withFailureHandler(err => {
+      container.innerHTML = '<p class="empty-message">Failed to load: ' + (err.message || err) + '</p>';
+    })
+    .getPendingSubRequests();
+};
+
+App.showApproveModal = function(id, requesterName) {
+  App.showModal(
+    'Approve Substitute Request',
+    '<p>Approve substitute coverage for <strong>' + requesterName + '</strong>?</p>' +
+    '<p style="color: #666; font-size: 0.9rem; margin-top: 12px;">This will notify the teacher that their request has been approved.</p>',
+    [
+      { label: 'Cancel', class: 'btn-secondary', action: function() { App.closeModal(); } },
+      { label: 'Approve', class: 'btn-success', action: function() { App.approveSubRequest(id); } }
+    ]
+  );
+};
+
+App.approveSubRequest = function(id) {
+  // Disable all modal buttons
+  document.querySelectorAll('#modal-footer .btn').forEach(function(btn) {
+    btn.disabled = true;
+    btn.style.opacity = '0.6';
+  });
+  App.toast('Processing...', 'info');
+  
+  google.script.run
+    .withSuccessHandler(function(result) {
+      App.closeModal();
+      if (!result) {
+        App.toast('Failed to approve request', 'error');
+        return;
+      }
+      if (result.error) {
+        App.toast(result.error, 'error');
+        return;
+      }
+      App.toast(result.message || 'Request approved', 'success');
+      App.loadSubRequests();
+    })
+    .withFailureHandler(function(err) {
+      App.closeModal();
+      App.toast('Failed: ' + (err.message || err), 'error');
+    })
+    .approveSubRequest(id);
+};
+
+App.showDenyModal = function(id) {
+  App.showModal(
+    'Deny Substitute Request',
+    '<p>Please provide a reason for denial:</p>' +
+    '<textarea id="deny-reason" style="width:100%;height:80px;margin-top:12px;padding:8px;border:1px solid #ccc;border-radius:4px;"></textarea>',
+    [
+      { label: 'Cancel', class: 'btn-secondary', action: function() { App.closeModal(); } },
+      { label: 'Deny Request', class: 'btn-danger', action: function() {
+        var reason = document.getElementById('deny-reason').value || 'No reason provided';
+        App.denySubRequest(id, reason);
+      }}
+    ]
+  );
+};
+
+App.denySubRequest = function(id, reason) {
+  // Disable all modal buttons
+  document.querySelectorAll('#modal-footer .btn').forEach(function(btn) {
+    btn.disabled = true;
+    btn.style.opacity = '0.6';
+  });
+  App.toast('Processing...', 'info');
+  
+  google.script.run
+    .withSuccessHandler(function(result) {
+      App.closeModal();
+      if (!result) {
+        App.toast('Failed to deny request', 'error');
+        return;
+      }
+      if (result.error) {
+        App.toast(result.error, 'error');
+        return;
+      }
+      App.toast(result.message || 'Request denied', 'success');
+      App.loadSubRequests();
+    })
+    .withFailureHandler(function(err) {
+      App.closeModal();
+      App.toast('Failed: ' + (err.message || err), 'error');
+    })
+    .denySubRequest(id, reason);
+};
+
+// ============================================================================
+// ALL OBSERVATIONS (ADMIN)
+// ============================================================================
+
+App.loadAllObservations = function() {
+  const container = document.getElementById('all-observations-list');
+  container.innerHTML = '<p class="empty-message">Loading...</p>';
+  
+  const filters = {
+    status: document.getElementById('filter-status').value,
+    startDate: document.getElementById('filter-start').value,
+    endDate: document.getElementById('filter-end').value
+  };
+  
+  google.script.run
+    .withSuccessHandler(observations => {
+      if (!observations) {
+        container.innerHTML = '<p class="empty-message">Failed to load observations</p>';
+        return;
+      }
+      if (observations.error) {
+        container.innerHTML = '<p class="empty-message">' + observations.error + '</p>';
+        return;
+      }
+      
+      if (!observations.length) {
+        container.innerHTML = '<p class="empty-message">No observations found.</p>';
+        return;
+      }
+      
+      container.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Observer</th>
+              <th>Teacher</th>
+              <th>Room</th>
+              <th>Periods</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${observations.slice(0, 100).map(o => `
+              <tr>
+                <td>${this.formatDate(o.date)}</td>
+                <td>${o.observerName}</td>
+                <td>${o.teacherName}</td>
+                <td>${o.room}</td>
+                <td>${Array.isArray(o.periods) ? o.periods.join(', ') : o.periods}</td>
+                <td>${this.getStatusBadge(o.status)}</td>
+                <td>
+                  ${o.status !== 'canceled' ? `
+                    <button class="btn btn-small btn-danger" onclick="App.adminDeleteObservation('${o.id}')">Delete</button>
+                  ` : ''}
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    })
+    .withFailureHandler(err => {
+      container.innerHTML = '<p class="empty-message">Failed to load: ' + (err.message || err) + '</p>';
+    })
+    .getAllObservations(filters);
+};
+
+App.filterObservations = function() {
+  this.loadAllObservations();
+};
+
+App.adminDeleteObservation = function(id) {
+  if (!confirm('Are you sure you want to delete this observation?')) return;
+  
+  google.script.run
+    .withSuccessHandler(result => {
+      if (result.error) {
+        this.toast(result.error, 'error');
+        return;
+      }
+      this.toast('Observation deleted', 'success');
+      this.loadAllObservations();
+    })
+    .withFailureHandler(err => this.toast('Failed: ' + err.message, 'error'))
+    .adminDeleteObservation(id);
+};
+
+// ============================================================================
+// AUDIT LOG (ADMIN)
+// ============================================================================
+
+App.loadAuditLog = function() {
+  const container = document.getElementById('audit-log-list');
+  container.innerHTML = '<p class="empty-message">Loading...</p>';
+  
+  google.script.run
+    .withSuccessHandler(entries => {
+      if (!entries) {
+        container.innerHTML = '<p class="empty-message">Failed to load audit log</p>';
+        return;
+      }
+      if (entries.error) {
+        container.innerHTML = '<p class="empty-message">' + entries.error + '</p>';
+        return;
+      }
+      
+      if (!entries.length) {
+        container.innerHTML = '<p class="empty-message">No audit entries.</p>';
+        return;
+      }
+      
+      container.innerHTML = entries.map(e => `
+        <div class="audit-item">
+          <div class="audit-action">${e.action}</div>
+          <div class="audit-meta">${e.userId} • ${this.formatDateTime(e.timestamp)}</div>
+        </div>
+      `).join('');
+    })
+    .withFailureHandler(err => {
+      container.innerHTML = '<p class="empty-message">Failed to load: ' + (err.message || err) + '</p>';
+    })
+    .getAuditLog(100);
+};
+
+// ============================================================================
+// TEACHER SCHEDULE MANAGEMENT (ADMIN)
+// ============================================================================
+
+App.teacherScheduleData = [];
+
+App.loadPrepPeriods = function() {
+  var container = document.getElementById('prep-periods-list');
+  container.innerHTML = '<p class="empty-message">Loading...</p>';
+  
+  google.script.run
+    .withSuccessHandler(function(teachers) {
+      if (!teachers) {
+        container.innerHTML = '<p class="empty-message">Failed to load teachers</p>';
+        return;
+      }
+      if (teachers.error) {
+        container.innerHTML = '<p class="empty-message">' + teachers.error + '</p>';
+        return;
+      }
+      
+      App.teacherScheduleData = teachers;
+      App.renderTeacherScheduleList();
+    })
+    .withFailureHandler(function(err) {
+      container.innerHTML = '<p class="empty-message">Failed to load: ' + (err.message || err) + '</p>';
+    })
+    .getTeachersForManagement();
+};
+
+App.filterTeacherList = function() {
+  App.renderTeacherScheduleList();
+};
+
+App.renderTeacherScheduleList = function() {
+  var container = document.getElementById('prep-periods-list');
+  var filterGrade = document.getElementById('prep-grade-filter').value;
+  
+  var filtered = App.teacherScheduleData;
+  if (filterGrade) {
+    filtered = App.teacherScheduleData.filter(function(t) {
+      if (Array.isArray(t.grades)) {
+        return t.grades.includes(Number(filterGrade));
+      }
+      return Number(t.grade) === Number(filterGrade);
+    });
+  }
+  
+  if (!filtered.length) {
+    container.innerHTML = '<p class="empty-message">No teachers found.</p>';
+    return;
+  }
+  
+  var html = '<table style="width: 100%; border-collapse: collapse;">' +
+    '<thead><tr>' +
+    '<th style="text-align: left; padding: 12px; border-bottom: 2px solid var(--primary);">Teacher</th>' +
+    '<th style="text-align: left; padding: 12px; border-bottom: 2px solid var(--primary);">Room</th>' +
+    '<th style="text-align: left; padding: 12px; border-bottom: 2px solid var(--primary);">Grade</th>' +
+    '<th style="text-align: left; padding: 12px; border-bottom: 2px solid var(--primary);">Unavailable Periods</th>' +
+    '</tr></thead><tbody>';
+  
+  filtered.forEach(function(t) {
+    var currentGrade = Array.isArray(t.grades) ? t.grades.join(', ') : (t.grade || 'N/A');
+    
+    // Get current unavailable periods (combining old lunchPeriod with new unavailablePeriods)
+    var currentUnavailable = [];
+    if (t.unavailablePeriods) {
+      if (typeof t.unavailablePeriods === 'string') {
+        try {
+          currentUnavailable = JSON.parse(t.unavailablePeriods);
+        } catch(e) {
+          currentUnavailable = t.unavailablePeriods.split(',').map(function(p) { return Number(p.trim()); }).filter(function(p) { return p; });
+        }
+      } else if (Array.isArray(t.unavailablePeriods)) {
+        currentUnavailable = t.unavailablePeriods;
+      }
+    }
+    // Backward compatibility: include old lunchPeriod if not already in unavailablePeriods
+    if (t.lunchPeriod && !currentUnavailable.includes(Number(t.lunchPeriod))) {
+      currentUnavailable.push(Number(t.lunchPeriod));
+    }
+    
+    // Display current unavailable periods
+    var currentDisplay = currentUnavailable.length > 0 
+      ? currentUnavailable.sort(function(a,b){return a-b;}).map(function(p){return 'P'+p;}).join(', ')
+      : '<span style="color: #999;">None set</span>';
+    
+    html += '<tr data-teacher-id="' + t.id + '">' +
+      '<td style="padding: 12px; border-bottom: 1px solid #eee; font-weight: 500;">' + t.name + '<br><span style="font-size: 0.8rem; color: #666;">' + t.email + '</span></td>' +
+      '<td style="padding: 12px; border-bottom: 1px solid #eee;">' + (t.room || 'N/A') + '</td>' +
+      '<td style="padding: 12px; border-bottom: 1px solid #eee;">' + currentGrade + '</td>' +
+      '<td style="padding: 12px; border-bottom: 1px solid #eee;">' +
+      '<div style="margin-bottom: 8px;"><strong>Current:</strong> ' + currentDisplay + '</div>' +
+      '<div class="unavailable-checkboxes" style="display: flex; flex-wrap: wrap; gap: 6px;">';
+    
+    // Checkboxes for each period
+    for (var p = 1; p <= 8; p++) {
+      var isChecked = currentUnavailable.includes(p);
+      html += '<label style="display: flex; align-items: center; gap: 4px; font-size: 0.9rem; background: ' + 
+        (isChecked ? 'var(--danger-light)' : 'var(--gray-100)') + 
+        '; padding: 6px 10px; border-radius: 6px; cursor: pointer; border: 1px solid ' +
+        (isChecked ? 'var(--danger)' : 'var(--gray-200)') + ';">' +
+        '<input type="checkbox" class="unavailable-checkbox" data-period="' + p + '"' + (isChecked ? ' checked' : '') + 
+        ' onchange="App.updateUnavailableStyle(this)" style="cursor: pointer;">' +
+        'P' + p + '</label>';
+    }
+    
+    html += '</div></td></tr>';
+  });
+  
+  html += '</tbody></table>';
+  container.innerHTML = html;
+};
+
+App.updateUnavailableStyle = function(checkbox) {
+  var label = checkbox.parentElement;
+  if (checkbox.checked) {
+    label.style.background = 'var(--danger-light)';
+    label.style.borderColor = 'var(--danger)';
+  } else {
+    label.style.background = 'var(--gray-100)';
+    label.style.borderColor = 'var(--gray-200)';
+  }
+};
+
+App.saveTeacherSchedules = function() {
+  var rows = document.querySelectorAll('#prep-periods-list tbody tr');
+  var updates = [];
+  
+  rows.forEach(function(row) {
+    var teacherId = row.getAttribute('data-teacher-id');
+    if (!teacherId) return;
+    
+    // Get selected unavailable periods
+    var unavailablePeriods = [];
+    row.querySelectorAll('.unavailable-checkbox:checked').forEach(function(cb) {
+      unavailablePeriods.push(Number(cb.getAttribute('data-period')));
+    });
+    unavailablePeriods.sort(function(a,b) { return a - b; });
+    
+    // Find original values
+    var original = App.teacherScheduleData.find(function(t) { return t.id === teacherId; });
+    var originalUnavailable = [];
+    if (original) {
+      if (original.unavailablePeriods) {
+        if (typeof original.unavailablePeriods === 'string') {
+          try {
+            originalUnavailable = JSON.parse(original.unavailablePeriods);
+          } catch(e) {
+            originalUnavailable = [];
+          }
+        } else if (Array.isArray(original.unavailablePeriods)) {
+          originalUnavailable = original.unavailablePeriods;
+        }
+      }
+      // Include old lunchPeriod for comparison
+      if (original.lunchPeriod && !originalUnavailable.includes(Number(original.lunchPeriod))) {
+        originalUnavailable.push(Number(original.lunchPeriod));
+      }
+      originalUnavailable.sort(function(a,b) { return a - b; });
+    }
+    
+    // Check if changed
+    var changed = JSON.stringify(unavailablePeriods) !== JSON.stringify(originalUnavailable);
+    
+    if (changed) {
+      updates.push({ 
+        teacherId: teacherId,
+        unavailablePeriods: unavailablePeriods
+      });
+    }
+  });
+  
+  if (updates.length === 0) {
+    App.toast('No changes to save', 'info');
+    return;
+  }
+  
+  App.toast('Saving ' + updates.length + ' change(s)...', 'info');
+  
+  google.script.run
+    .withSuccessHandler(function(result) {
+      if (!result) {
+        App.toast('Failed to save changes', 'error');
+        return;
+      }
+      if (result.error) {
+        App.toast(result.error, 'error');
+        return;
+      }
+      App.toast(result.message || 'Changes saved!', 'success');
+      App.loadPrepPeriods(); // Refresh
+    })
+    .withFailureHandler(function(err) {
+      App.toast('Failed: ' + (err.message || err), 'error');
+    })
+    .bulkUpdateTeacherSchedules(updates);
+};
+
+// ============================================================================
+// ACCESS REQUESTS (ADMIN)
+// ============================================================================
+
+App.loadAccessRequests = function() {
+  var container = document.getElementById('access-requests-list');
+  container.innerHTML = '<p class="empty-message">Loading...</p>';
+  
+  google.script.run
+    .withSuccessHandler(function(requests) {
+      if (!requests || requests.error) {
+        container.innerHTML = '<p class="empty-message">' + (requests ? requests.error : 'Failed to load') + '</p>';
+        return;
+      }
+      
+      if (requests.length === 0) {
+        container.innerHTML = '<p class="empty-message">No pending access requests.</p>';
+        return;
+      }
+      
+      var html = requests.map(function(r) {
+        return '<div class="request-item" data-id="' + r.id + '">' +
+          '<div class="request-info">' +
+            '<div style="font-weight: 600;">' + r.name + '</div>' +
+            '<div style="font-size: 0.875rem; color: var(--gray-500);">' + r.email + '</div>' +
+            '<div style="font-size: 0.875rem; color: var(--gray-500);">' +
+              (r.room ? 'Room ' + r.room + ' • ' : '') +
+              (r.grade ? 'Grade ' + r.grade + ' • ' : '') +
+              'Requested: ' + r.requestedRole +
+            '</div>' +
+          '</div>' +
+          '<div class="request-actions" style="display: flex; gap: 8px;">' +
+            '<button class="btn btn-success btn-small" onclick="App.approveAccessRequest(\'' + r.id + '\')">✓ Approve</button>' +
+            '<button class="btn btn-danger btn-small" onclick="App.denyAccessRequest(\'' + r.id + '\')">✗ Deny</button>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+      
+      container.innerHTML = html;
+    })
+    .withFailureHandler(function(err) {
+      container.innerHTML = '<p class="empty-message">Error: ' + (err.message || err) + '</p>';
+    })
+    .getPendingAccessRequests();
+};
+
+App.approveAccessRequest = function(requestId) {
+  App.showModal('Confirm Approval', '<p>Grant access to this user?</p>', [
+    { label: 'Cancel', class: 'btn-secondary', action: function() { App.closeModal(); } },
+    { label: 'Approve', class: 'btn-success', action: function() {
+      App.closeModal();
+      App.toast('Approving...', 'info');
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (result.success) {
+            App.toast(result.message || 'Access granted!', 'success');
+            App.loadAccessRequests();
+          } else {
+            App.toast(result.error || 'Failed', 'error');
+          }
+        })
+        .withFailureHandler(function(err) { App.toast('Error: ' + err.message, 'error'); })
+        .approveAccessRequest(requestId);
+    }}
+  ]);
+};
+
+App.denyAccessRequest = function(requestId) {
+  App.showModal('Deny Request', 
+    '<p>Reason for denial (optional):</p><textarea id="deny-reason" rows="2" style="width:100%; padding:8px; margin-top:8px;"></textarea>', 
+    [
+      { label: 'Cancel', class: 'btn-secondary', action: function() { App.closeModal(); } },
+      { label: 'Deny', class: 'btn-danger', action: function() {
+        var reason = document.getElementById('deny-reason').value;
+        App.closeModal();
+        google.script.run
+          .withSuccessHandler(function(result) {
+            if (result.success) {
+              App.toast('Request denied', 'success');
+              App.loadAccessRequests();
+            } else {
+              App.toast(result.error || 'Failed', 'error');
+            }
+          })
+          .withFailureHandler(function(err) { App.toast('Error: ' + err.message, 'error'); })
+          .denyAccessRequest(requestId, reason);
+      }}
+    ]
+  );
+};
+
+// ============================================================================
+// BULK IMPORT (ADMIN)
+// ============================================================================
+
+App.importPreviewData = null;
+
+App.previewImport = function() {
+  var text = document.getElementById('import-text').value;
+  var preview = document.getElementById('import-preview');
+  var previewList = document.getElementById('import-preview-list');
+  var countSpan = document.getElementById('import-count');
+  var importBtn = document.getElementById('execute-import-btn');
+  var results = document.getElementById('import-results');
+  
+  results.style.display = 'none';
+  
+  if (!text.trim()) {
+    App.toast('Please paste teacher data first', 'warning');
+    return;
+  }
+  
+  google.script.run
+    .withSuccessHandler(function(result) {
+      if (result.error) {
+        App.toast(result.error, 'error');
+        preview.style.display = 'none';
+        importBtn.disabled = true;
+        return;
+      }
+      
+      App.importPreviewData = result.teachers;
+      countSpan.textContent = result.count;
+      
+      var html = '<table style="width:100%; font-size: 0.875rem;">' +
+        '<thead><tr><th>Name</th><th>Email</th><th>Room</th><th>Grade</th></tr></thead><tbody>';
+      
+      result.teachers.slice(0, 50).forEach(function(t) {
+        html += '<tr><td>' + t.name + '</td><td>' + t.email + '</td><td>' + (t.room || '-') + '</td><td>' + (t.grade || '-') + '</td></tr>';
+      });
+      
+      if (result.count > 50) {
+        html += '<tr><td colspan="4" style="text-align:center; color: var(--gray-500);">... and ' + (result.count - 50) + ' more</td></tr>';
+      }
+      
+      html += '</tbody></table>';
+      previewList.innerHTML = html;
+      preview.style.display = 'block';
+      importBtn.disabled = false;
+    })
+    .withFailureHandler(function(err) {
+      App.toast('Parse error: ' + err.message, 'error');
+    })
+    .parseTeacherImportText(text);
+};
+
+App.executeImport = function() {
+  if (!App.importPreviewData || App.importPreviewData.length === 0) {
+    App.toast('No data to import', 'warning');
+    return;
+  }
+  
+  App.showModal('Confirm Import', 
+    '<p>Import <strong>' + App.importPreviewData.length + '</strong> teachers?</p><p style="color: var(--gray-500); font-size: 0.875rem;">Existing teachers with matching emails will be skipped.</p>', 
+    [
+      { label: 'Cancel', class: 'btn-secondary', action: function() { App.closeModal(); } },
+      { label: 'Import', class: 'btn-gold', action: function() {
+        App.closeModal();
+        App.toast('Importing...', 'info');
+        
+        google.script.run
+          .withSuccessHandler(function(result) {
+            var resultsDiv = document.getElementById('import-results');
+            if (result.success) {
+              resultsDiv.style.background = 'var(--success-light)';
+              resultsDiv.innerHTML = '<strong style="color: var(--success);">✓ Import Complete</strong><br>' +
+                'Added: ' + result.added + ' • Skipped: ' + result.skipped +
+                (result.errors.length > 0 ? '<br><span style="color: var(--danger);">Errors: ' + result.errors.join(', ') + '</span>' : '');
+              App.toast(result.message, 'success');
+              
+              // Clear form
+              document.getElementById('import-text').value = '';
+              document.getElementById('import-preview').style.display = 'none';
+              document.getElementById('execute-import-btn').disabled = true;
+              App.importPreviewData = null;
+            } else {
+              resultsDiv.style.background = 'var(--danger-light)';
+              resultsDiv.innerHTML = '<strong style="color: var(--danger);">Import Failed</strong><br>' + result.error;
+              App.toast(result.error, 'error');
+            }
+            resultsDiv.style.display = 'block';
+          })
+          .withFailureHandler(function(err) {
+            App.toast('Import failed: ' + err.message, 'error');
+          })
+          .bulkImportTeachers(App.importPreviewData);
+      }}
+    ]
+  );
+};
+
+// ============================================================================
+// ARCHIVE & RESET (ADMIN)
+// ============================================================================
+
+App.loadArchiveStatus = function() {
+  var statusDiv = document.getElementById('archive-status');
+  var archivesList = document.getElementById('archives-list');
+  var archiveBtn = document.getElementById('archive-btn');
+  var confirmCheckbox = document.getElementById('confirm-archive');
+  
+  // Enable button only when checkbox is checked
+  confirmCheckbox.onchange = function() {
+    archiveBtn.disabled = !this.checked;
+  };
+  
+  google.script.run
+    .withSuccessHandler(function(data) {
+      if (data.error) {
+        statusDiv.innerHTML = '<p class="empty-message">' + data.error + '</p>';
+        return;
+      }
+      
+      statusDiv.innerHTML = 
+        '<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">' +
+          '<div style="background: var(--primary-light); padding: 16px; border-radius: var(--radius); text-align: center;">' +
+            '<div style="font-size: 2rem; font-weight: 700; color: var(--primary);">' + data.currentSchoolYear + '</div>' +
+            '<div style="color: var(--gray-500); font-size: 0.875rem;">Current School Year</div>' +
+          '</div>' +
+          '<div style="background: var(--secondary-light); padding: 16px; border-radius: var(--radius); text-align: center;">' +
+            '<div style="font-size: 2rem; font-weight: 700; color: var(--secondary);">' + data.currentObservations + '</div>' +
+            '<div style="color: var(--gray-500); font-size: 0.875rem;">Observations This Year</div>' +
+          '</div>' +
+        '</div>';
+      
+      if (data.archives.length === 0) {
+        archivesList.innerHTML = '<p class="empty-message">No archives yet.</p>';
+      } else {
+        var html = '<table style="width: 100%; font-size: 0.875rem;">' +
+          '<thead><tr><th>Archive Name</th><th>Records</th></tr></thead><tbody>';
+        data.archives.forEach(function(a) {
+          html += '<tr><td>' + a.name + '</td><td>' + a.rows + '</td></tr>';
+        });
+        html += '</tbody></table>';
+        archivesList.innerHTML = html;
+      }
+    })
+    .withFailureHandler(function(err) {
+      statusDiv.innerHTML = '<p class="empty-message">Error: ' + err.message + '</p>';
+    })
+    .getArchiveStatus();
+};
+
+App.archiveAndReset = function() {
+  var confirmCheckbox = document.getElementById('confirm-archive');
+  if (!confirmCheckbox.checked) {
+    App.toast('Please confirm by checking the box', 'warning');
+    return;
+  }
+  
+  App.showModal('⚠ Final Confirmation', 
+    '<p style="color: var(--danger);"><strong>This will archive and clear all observation data.</strong></p>' +
+    '<p>Are you absolutely sure? This cannot be undone.</p>', 
+    [
+      { label: 'Cancel', class: 'btn-secondary', action: function() { App.closeModal(); } },
+      { label: 'Yes, Archive & Reset', class: 'btn-danger', action: function() {
+        App.closeModal();
+        App.toast('Archiving...', 'info');
+        
+        google.script.run
+          .withSuccessHandler(function(result) {
+            if (result.success) {
+              App.toast(result.message, 'success');
+              App.loadArchiveStatus();
+              document.getElementById('confirm-archive').checked = false;
+              document.getElementById('archive-btn').disabled = true;
+            } else {
+              App.toast(result.error, 'error');
+            }
+          })
+          .withFailureHandler(function(err) {
+            App.toast('Archive failed: ' + err.message, 'error');
+          })
+          .archiveAndResetYear(true);
+      }}
+    ]
+  );
+};
+
+// ============================================================================
+// BRANDING SETTINGS (ADMIN)
+// ============================================================================
+
+App.loadBrandingSettings = function() {
+  // Get current branding from the header
+  var currentLogo = document.getElementById('school-logo');
+  var currentText = currentLogo ? currentLogo.textContent.trim() : 'N/A';
+  
+  // Set current branding preview
+  var currentPreview = document.getElementById('current-branding-preview');
+  currentPreview.textContent = currentText;
+  App.applyLogoSizing(currentPreview);
+  
+  // Clear inputs
+  document.getElementById('new-branding-input').value = '';
+  document.getElementById('branding-confirm-input').value = '';
+  document.getElementById('save-branding-btn').disabled = true;
+  document.getElementById('branding-result').style.display = 'none';
+  
+  // Reset preview
+  var newPreview = document.getElementById('new-branding-preview');
+  newPreview.textContent = 'Preview';
+  App.applyLogoSizing(newPreview);
+};
+
+App.previewBranding = function(text) {
+  var preview = document.getElementById('new-branding-preview');
+  preview.textContent = text || 'Preview';
+  App.applyLogoSizing(preview);
+  App.checkBrandingConfirm();
+};
+
+App.checkBrandingConfirm = function() {
+  var confirmInput = document.getElementById('branding-confirm-input');
+  var brandingInput = document.getElementById('new-branding-input');
+  var saveBtn = document.getElementById('save-branding-btn');
+  
+  var isConfirmed = confirmInput.value.toLowerCase().trim() === 'accept';
+  var hasText = brandingInput.value.trim().length > 0;
+  
+  saveBtn.disabled = !(isConfirmed && hasText);
+};
+
+App.saveBranding = function() {
+  var newBranding = document.getElementById('new-branding-input').value.trim();
+  var confirmInput = document.getElementById('branding-confirm-input');
+  
+  if (!newBranding) {
+    App.toast('Please enter branding text', 'warning');
+    return;
+  }
+  
+  if (confirmInput.value.toLowerCase().trim() !== 'accept') {
+    App.toast('Please type "accept" to confirm', 'warning');
+    return;
+  }
+  
+  if (newBranding.length > 20) {
+    App.toast('Branding text must be 20 characters or less', 'warning');
+    return;
+  }
+  
+  App.toast('Saving branding...', 'info');
+  
+  google.script.run
+    .withSuccessHandler(function(result) {
+      var resultDiv = document.getElementById('branding-result');
+      
+      if (result.success) {
+        resultDiv.style.background = 'var(--success-light)';
+        resultDiv.innerHTML = '<strong style="color: var(--success);">✓ Branding Updated!</strong><br>' +
+          'New branding: <strong>' + result.newBranding + '</strong><br>' +
+          '<span style="color: var(--gray-600);">Note: Create a new deployment in Apps Script for changes to appear for all users.</span>';
+        
+        // Update the header logo immediately for this session
+        var headerLogo = document.getElementById('school-logo');
+        if (headerLogo) {
+          headerLogo.textContent = result.newBranding;
+          App.applyLogoSizing(headerLogo);
+        }
+        
+        // Update the current preview
+        var currentPreview = document.getElementById('current-branding-preview');
+        currentPreview.textContent = result.newBranding;
+        App.applyLogoSizing(currentPreview);
+        
+        // Clear inputs
+        document.getElementById('new-branding-input').value = '';
+        document.getElementById('branding-confirm-input').value = '';
+        document.getElementById('save-branding-btn').disabled = true;
+        
+        App.toast('Branding saved!', 'success');
+      } else {
+        resultDiv.style.background = 'var(--danger-light)';
+        resultDiv.innerHTML = '<strong style="color: var(--danger);">Failed</strong><br>' + (result.error || 'Unknown error');
+        App.toast(result.error || 'Failed to save branding', 'error');
+      }
+      resultDiv.style.display = 'block';
+    })
+    .withFailureHandler(function(err) {
+      App.toast('Error: ' + err.message, 'error');
+    })
+    .updateBranding(newBranding);
+};
+
+// ============================================================================
+// READ-ONLY DASHBOARD
+// ============================================================================
+
+App.loadReadOnlyDashboard = function() {
+  google.script.run
+    .withSuccessHandler(data => {
+      if (!data) {
+        this.toast('Failed to load data', 'error');
+        return;
+      }
+      if (data.error) {
+        this.toast(data.error, 'error');
+        return;
+      }
+      
+      document.getElementById('ro-stat-today').textContent = data.todayObservations || 0;
+      document.getElementById('ro-stat-month').textContent = data.monthlyObservations || 0;
+      
+      const scheduleContainer = document.getElementById('readonly-schedule');
+      if (!data.todaySchedule || data.todaySchedule.length === 0) {
+        scheduleContainer.innerHTML = '<p class="empty-message">No observations today.</p>';
+      } else {
+        scheduleContainer.innerHTML = `
+          <table>
+            <thead><tr><th>Time</th><th>Observer</th><th>Teacher</th><th>Room</th></tr></thead>
+            <tbody>
+              ${data.todaySchedule.map(o => `
+                <tr><td>Period(s) ${o.time}</td><td>${o.observer}</td><td>${o.teacher}</td><td>${o.room}</td></tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+      }
+    })
+    .withFailureHandler(err => this.toast('Failed to load: ' + (err.message || err), 'error'))
+    .getDashboardData();
+};
+
+// ============================================================================
+// MODAL
+// ============================================================================
+
+App.modalActions = {};
+
+App.showModal = function(title, bodyHtml, buttons) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').innerHTML = bodyHtml;
+  
+  // Store actions and create buttons with data attributes
+  const footer = document.getElementById('modal-footer');
+  footer.innerHTML = '';
+  
+  buttons.forEach(function(b, index) {
+    App.modalActions['action_' + index] = b.action;
+    const btn = document.createElement('button');
+    btn.className = 'btn ' + b.class;
+    btn.textContent = b.label;
+    btn.setAttribute('data-action', 'action_' + index);
+    btn.onclick = function() {
+      var actionKey = this.getAttribute('data-action');
+      if (App.modalActions[actionKey]) {
+        App.modalActions[actionKey]();
+      }
+    };
+    footer.appendChild(btn);
+  });
+  
+  document.getElementById('modal-overlay').style.display = 'flex';
+};
+
+App.closeModal = function() {
+  document.getElementById('modal-overlay').style.display = 'none';
+  App.modalActions = {};
+};
+
+// ============================================================================
+// COLLAPSIBLE CARDS
+// ============================================================================
+
+App.toggleCard = function(cardId) {
+  const card = document.getElementById(cardId);
+  if (card) {
+    card.classList.toggle('collapsed');
+  }
+};
+
+// ============================================================================
+// TOAST NOTIFICATIONS
+// ============================================================================
+
+App.toast = function(message, type = 'info') {
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  toast.className = 'toast ' + type;
+  toast.textContent = message;
+  container.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.style.animation = 'slideIn 0.3s ease reverse';
+    setTimeout(() => toast.remove(), 300);
+  }, 4000);
+};
+
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
+App.formatDate = function(dateStr) {
+  const date = new Date(dateStr + 'T00:00:00');
+  return date.toLocaleDateString('en-US', { 
+    weekday: 'short', 
+    month: 'short', 
+    day: 'numeric' 
+  });
+};
+
+App.formatDateTime = function(isoStr) {
+  const date = new Date(isoStr);
+  return date.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit'
+  });
+};
+
+App.formatDateISO = function(date) {
+  return date.toISOString().split('T')[0];
+};
+
+App.showLoading = function(containerId) {
+  // Optional: show loading state in specific container
+};
+
+// ============================================================================
+// ADMIN SIDEBAR MENU
+// ============================================================================
+
+App.toggleAdminMenu = function() {
+  var sidebar = document.getElementById('admin-sidebar');
+  var overlay = document.getElementById('admin-sidebar-overlay');
+  var toggleBtn = document.getElementById('admin-menu-toggle');
+  
+  if (sidebar && overlay) {
+    var isOpen = sidebar.classList.contains('open');
+    
+    if (isOpen) {
+      sidebar.classList.remove('open');
+      overlay.classList.remove('open');
+      toggleBtn.innerHTML = '☰ Admin Tools';
+    } else {
+      sidebar.classList.add('open');
+      overlay.classList.add('open');
+      toggleBtn.innerHTML = '✕ Close Menu';
+    }
+  }
+};
+
+// Close sidebar when pressing Escape key
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    var sidebar = document.getElementById('admin-sidebar');
+    if (sidebar && sidebar.classList.contains('open')) {
+      App.toggleAdminMenu();
+    }
+  }
+});
+
+// ============================================================================
+// REPORT PROBLEM (Now just opens email)
+// ============================================================================
+
+App.reportProblem = function() {
+  window.location.href = 'mailto:etruslow@waynesboro.k12.va.us?subject=Observation%20System%20-%20Problem%20Report&body=Please%20describe%20the%20issue%20you%20encountered%3A%0A%0A';
+};
+
+</script>

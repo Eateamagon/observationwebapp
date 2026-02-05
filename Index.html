@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <title>Classroom Observation System</title>
+  <?!= include('Styles'); ?>
+</head>
+<body>
+  <!-- Loading Overlay -->
+  <div id="loading-overlay" class="loading-overlay">
+    <div class="spinner"></div>
+    <p>Loading...</p>
+  </div>
+  
+  <!-- Main App Container -->
+  <div id="app" class="app-container">
+    
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-content">
+        <div class="header-brand">
+          <div class="school-logo" id="school-logo"><?= config.schoolAbbr ?></div>
+          <h1>Classroom Observation System</h1>
+        </div>
+        <div class="user-info">
+          <span id="user-name"><?= user.name ?></span>
+          <span class="role-badge" id="user-role"><?= user.role ?></span>
+        </div>
+      </div>
+      <nav class="main-nav" id="main-nav">
+        <!-- Navigation populated by JS based on role -->
+      </nav>
+    </header>
+    
+    <!-- Main Content Area -->
+    <main class="main-content" id="main-content">
+      
+      <!-- Teacher Dashboard View -->
+      <section id="view-dashboard" class="view active">
+        <div class="section-header">
+          <h2>My Dashboard</h2>
+        </div>
+        
+        <!-- Status Card -->
+        <div class="status-card" id="status-card">
+          <div class="status-header">
+            <h3>Observation Requirement</h3>
+            <span id="current-month"></span>
+          </div>
+          <div class="status-body">
+            <div class="status-metric" id="observation-count">
+              <span class="metric-value">-</span>
+              <span class="metric-label">Observations This Year</span>
+            </div>
+            <div class="status-indicator" id="requirement-status">
+              <!-- Filled by JS -->
+            </div>
+          </div>
+        </div>
+        
+        <!-- My Upcoming Observations -->
+        <div class="card">
+          <h3>My Upcoming Observations</h3>
+          <div id="my-observations-list" class="observations-list">
+            <p class="empty-message">Loading...</p>
+          </div>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="quick-actions" id="quick-actions" style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+          <button class="btn btn-primary btn-large" onclick="App.startNewObservation()">
+            + Schedule New Observation
+          </button>
+          <a href="https://docs.google.com/document/d/1VAJlJ7SZpRo4wyuautRXpoGFR9RHV-UIz4LcbTwBfyU/copy" target="_blank" class="btn btn-gold btn-large" style="text-decoration: none;">
+            📝 Copy Observation Form
+          </a>
+        </div>
+        
+        <!-- Report Problem Button -->
+        <div style="margin-top: 40px; text-align: center;">
+          <a href="mailto:etruslow@waynesboro.k12.va.us?subject=Observation%20System%20-%20Problem%20Report&body=Please%20describe%20the%20issue%20you%20encountered%3A%0A%0A" 
+             class="btn btn-secondary" 
+             style="padding: 14px 28px; font-size: 1.1rem; text-decoration: none; display: inline-block;">
+            🐛 Report Problem
+          </a>
+        </div>
+      </section>
+      
+      <!-- Schedule Observation View -->
+      <section id="view-schedule" class="view">
+        <div class="section-header">
+          <h2>Schedule Observation</h2>
+          <button class="btn btn-secondary" onclick="App.showView('dashboard')">← Back</button>
+        </div>
+        
+        <!-- Step Indicator -->
+        <div class="step-indicator" id="step-indicator">
+          <div class="step active" data-step="1">1. Select Grade</div>
+          <div class="step" data-step="2">2. Select Teacher</div>
+          <div class="step" data-step="3">3. Select Date</div>
+          <div class="step" data-step="4">4. Select Time</div>
+          <div class="step" data-step="5">5. Review</div>
+        </div>
+        
+        <!-- Step 1: Grade Selection -->
+        <div class="schedule-step" id="step-1">
+          <h3>Select Grade Level</h3>
+          <p class="step-description">Choose which grade you'd like to observe. Cross-grade observations are allowed.</p>
+          <div class="grade-buttons" id="grade-buttons">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+        
+        <!-- Step 2: Teacher Selection -->
+        <div class="schedule-step" id="step-2" style="display:none;">
+          <h3>Select Teacher to Observe</h3>
+          <div class="teacher-grid" id="teacher-grid">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+        
+        <!-- Step 3: Date Selection -->
+        <div class="schedule-step" id="step-3" style="display:none;">
+          <h3>Select Date</h3>
+          <div class="date-picker-container">
+            <input type="date" id="observation-date" class="date-input" 
+                   onchange="App.onDateSelected(this.value)">
+            <p class="date-hint">Select a school day. Weekends are blocked.</p>
+          </div>
+        </div>
+        
+        <!-- Step 4: Time Slot Selection -->
+        <div class="schedule-step" id="step-4" style="display:none;">
+          <h3>Select Time Slot(s)</h3>
+          <p class="step-description">Click to select one or more consecutive periods.</p>
+          <div class="time-grid" id="time-grid">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+        
+        <!-- Step 5: Review & Options -->
+        <div class="schedule-step" id="step-5" style="display:none;">
+          <h3>Review & Confirm</h3>
+          
+          <div class="review-card">
+            <div class="review-item">
+              <label>Teacher:</label>
+              <span id="review-teacher">-</span>
+            </div>
+            <div class="review-item">
+              <label>Room:</label>
+              <span id="review-room">-</span>
+            </div>
+            <div class="review-item">
+              <label>Grade:</label>
+              <span id="review-grade">-</span>
+            </div>
+            <div class="review-item">
+              <label>Date:</label>
+              <span id="review-date">-</span>
+            </div>
+            <div class="review-item">
+              <label>Time:</label>
+              <span id="review-time">-</span>
+            </div>
+          </div>
+          
+          <!-- Substitute Coverage Option -->
+          <div class="sub-coverage-option">
+            <label class="checkbox-label">
+              <input type="checkbox" id="needs-sub" onchange="App.onSubToggle(this.checked)">
+              <span>I need substitute coverage for my class</span>
+            </label>
+            <p class="sub-notice" id="sub-notice" style="display:none;">
+              ⚠ Substitute requests require admin approval. Short-notice requests may have limited availability.
+            </p>
+          </div>
+          
+          <!-- Already Met Requirement Notice -->
+          <div class="requirement-notice" id="already-met-notice" style="display:none;">
+            ℹ You've already completed an observation this month. 
+            This additional observation will earn you PD points!
+          </div>
+          
+          <div class="submit-section">
+            <button class="btn btn-primary btn-large" onclick="App.submitObservation()">
+              Confirm Observation
+            </button>
+          </div>
+        </div>
+      </section>
+      
+      <!-- Admin Dashboard View -->
+      <section id="view-admin" class="view">
+        <div class="section-header">
+          <h2>Admin Dashboard</h2>
+        </div>
+        
+        <!-- Admin Menu Toggle Button -->
+        <div class="admin-menu-header" style="margin-bottom: 24px;">
+          <button class="btn btn-primary admin-menu-toggle" onclick="App.toggleAdminMenu()" id="admin-menu-toggle">
+            ☰ Admin Tools
+          </button>
+        </div>
+        
+        <!-- Admin Sidebar Menu -->
+        <div class="admin-sidebar" id="admin-sidebar">
+          <div class="admin-sidebar-header">
+            <h3>Admin Tools</h3>
+            <button class="admin-sidebar-close" onclick="App.toggleAdminMenu()">×</button>
+          </div>
+          <div class="admin-sidebar-content">
+            <div class="admin-menu-section">
+              <div class="admin-menu-section-title">Action Required</div>
+              <button class="admin-menu-item highlight" onclick="App.showView('sub-requests'); App.toggleAdminMenu();">
+                <span class="admin-menu-icon">📋</span>
+                <span>Sub Requests</span>
+              </button>
+              <button class="admin-menu-item highlight" onclick="App.showView('access-requests'); App.toggleAdminMenu();" id="access-requests-btn">
+                <span class="admin-menu-icon">🔑</span>
+                <span>Access Requests</span>
+              </button>
+            </div>
+            <div class="admin-menu-section">
+              <div class="admin-menu-section-title">Reports</div>
+              <button class="admin-menu-item" onclick="App.showView('all-observations'); App.toggleAdminMenu();">
+                <span class="admin-menu-icon">📊</span>
+                <span>All Observations</span>
+              </button>
+              <button class="admin-menu-item" onclick="App.showView('audit-log'); App.toggleAdminMenu();">
+                <span class="admin-menu-icon">📜</span>
+                <span>Audit Log</span>
+              </button>
+            </div>
+            <div class="admin-menu-section">
+              <div class="admin-menu-section-title">Management</div>
+              <button class="admin-menu-item" onclick="App.showView('prep-periods'); App.toggleAdminMenu();">
+                <span class="admin-menu-icon">🚫</span>
+                <span>Unavailable Times</span>
+              </button>
+              <button class="admin-menu-item" onclick="App.showView('bulk-import'); App.toggleAdminMenu();">
+                <span class="admin-menu-icon">📥</span>
+                <span>Import Teachers</span>
+              </button>
+            </div>
+            <div class="admin-menu-section">
+              <div class="admin-menu-section-title">Settings</div>
+              <button class="admin-menu-item" onclick="App.showView('branding'); App.toggleAdminMenu();">
+                <span class="admin-menu-icon">🎨</span>
+                <span>Branding</span>
+              </button>
+              <button class="admin-menu-item" onclick="App.showView('archive-reset'); App.toggleAdminMenu();">
+                <span class="admin-menu-icon">📦</span>
+                <span>Archive/Reset</span>
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Admin Sidebar Overlay -->
+        <div class="admin-sidebar-overlay" id="admin-sidebar-overlay" onclick="App.toggleAdminMenu()"></div>
+        
+        <!-- Stats Cards -->
+        <div class="stats-grid" id="admin-stats">
+          <div class="stat-card">
+            <span class="stat-value" id="stat-today">-</span>
+            <span class="stat-label">Today</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-value" id="stat-week">-</span>
+            <span class="stat-label">This Week</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-value" id="stat-month">-</span>
+            <span class="stat-label">This Year</span>
+          </div>
+          <div class="stat-card alert" id="stat-pending-card">
+            <span class="stat-value" id="stat-pending">-</span>
+            <span class="stat-label">Pending Sub Requests</span>
+          </div>
+        </div>
+        
+        <!-- Today's Schedule -->
+        <div class="card">
+          <h3>Today's Observations</h3>
+          <div id="today-schedule" class="schedule-table">
+            <p class="empty-message">Loading...</p>
+          </div>
+        </div>
+        
+        <!-- Teachers Not Observed -->
+        <div class="card collapsible" id="teachers-not-observed-card">
+          <div class="card-header" onclick="App.toggleCard('teachers-not-observed-card')">
+            <h3>Teachers Without Observation <span id="teachers-not-observed-count"></span></h3>
+            <span class="toggle-icon">â–¼</span>
+          </div>
+          <div class="card-body">
+            <div id="teachers-not-observed" class="grade-columns">
+              <p class="empty-message">Loading...</p>
+            </div>
+          </div>
+        </div>
+      </section>
+      
+      <!-- Substitute Requests View (Admin) -->
+      <section id="view-sub-requests" class="view">
+        <div class="section-header">
+          <h2>Pending Substitute Requests</h2>
+          <button class="btn btn-secondary" onclick="App.showView('admin')">← Back</button>
+        </div>
+        
+        <div id="sub-requests-list" class="requests-list">
+          <p class="empty-message">Loading...</p>
+        </div>
+      </section>
+      
+      <!-- All Observations View -->
+      <section id="view-all-observations" class="view">
+        <div class="section-header">
+          <h2>All Observations</h2>
+          <button class="btn btn-secondary" onclick="App.showView('admin')">← Back</button>
+        </div>
+        
+        <!-- Filters -->
+        <div class="filters">
+          <select id="filter-status" onchange="App.filterObservations()">
+            <option value="">All Statuses</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="pending_sub">Pending Sub</option>
+            <option value="canceled">Canceled</option>
+          </select>
+          <input type="date" id="filter-start" onchange="App.filterObservations()">
+          <input type="date" id="filter-end" onchange="App.filterObservations()">
+        </div>
+        
+        <div id="all-observations-list" class="observations-table">
+          <p class="empty-message">Loading...</p>
+        </div>
+      </section>
+      
+      <!-- Audit Log View (Admin) -->
+      <section id="view-audit-log" class="view">
+        <div class="section-header">
+          <h2>Audit Log</h2>
+          <button class="btn btn-secondary" onclick="App.showView('admin')">← Back</button>
+        </div>
+        
+        <div id="audit-log-list" class="audit-list">
+          <p class="empty-message">Loading...</p>
+        </div>
+      </section>
+      
+      <!-- Teacher Unavailable Times (Admin) -->
+      <section id="view-prep-periods" class="view">
+        <div class="section-header">
+          <h2>Unavailable Times for Teachers</h2>
+          <button class="btn btn-secondary" onclick="App.showView('admin')">← Back</button>
+        </div>
+        
+        <div class="card">
+          <p style="color: #666; margin-bottom: 16px;">
+            Set periods when each teacher is unavailable for observations (lunch, prep, duty, etc.). 
+            Teachers cannot be observed during their unavailable periods.
+          </p>
+          
+          <div class="filters" style="margin-bottom: 16px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+            <select id="prep-grade-filter" onchange="App.filterTeacherList()" style="padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+              <option value="">All Grades</option>
+              <option value="6">Grade 6</option>
+              <option value="7">Grade 7</option>
+              <option value="8">Grade 8</option>
+            </select>
+            <button class="btn btn-gold" onclick="App.saveTeacherSchedules()">💾 Save All Changes</button>
+          </div>
+          
+          <div id="prep-periods-list" class="teacher-management-table">
+            <p class="empty-message">Loading...</p>
+          </div>
+        </div>
+      </section>
+      
+      <!-- Access Requests (Admin) -->
+      <section id="view-access-requests" class="view">
+        <div class="section-header">
+          <h2>Access Requests</h2>
+          <button class="btn btn-secondary" onclick="App.showView('admin')">← Back</button>
+        </div>
+        
+        <div class="card">
+          <p style="color: #666; margin-bottom: 16px;">
+            Review and approve access requests from new users.
+          </p>
+          <div id="access-requests-list" class="requests-list">
+            <p class="empty-message">Loading...</p>
+          </div>
+        </div>
+      </section>
+      
+      <!-- Bulk Import Teachers (Admin) -->
+      <section id="view-bulk-import" class="view">
+        <div class="section-header">
+          <h2>Bulk Import Teachers</h2>
+          <button class="btn btn-secondary" onclick="App.showView('admin')">← Back</button>
+        </div>
+        
+        <div class="card">
+          <p style="color: #666; margin-bottom: 16px;">
+            Paste teacher data from Excel or Google Sheets. Include columns for: <strong>email</strong>, <strong>name</strong>, room (optional), grade (optional).
+          </p>
+          
+          <textarea id="import-text" rows="10" style="width: 100%; font-family: monospace; font-size: 0.875rem; padding: 12px; border: 2px solid var(--gray-200); border-radius: var(--radius); margin-bottom: 16px;" placeholder="email,name,room,grade
+jsmith@waynesboro.k12.va.us,John Smith,101,7
+mjones@waynesboro.k12.va.us,Mary Jones,102,8"></textarea>
+          
+          <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+            <button class="btn btn-secondary" onclick="App.previewImport()">👁 Preview</button>
+            <button class="btn btn-gold" onclick="App.executeImport()" id="execute-import-btn" disabled>📥 Import Teachers</button>
+          </div>
+          
+          <div id="import-preview" style="display: none;">
+            <h4 style="margin-bottom: 12px;">Preview (<span id="import-count">0</span> teachers)</h4>
+            <div id="import-preview-list" style="max-height: 300px; overflow-y: auto; border: 1px solid var(--gray-200); border-radius: var(--radius); padding: 12px;"></div>
+          </div>
+          
+          <div id="import-results" style="display: none; margin-top: 16px; padding: 16px; border-radius: var(--radius);"></div>
+        </div>
+      </section>
+      
+      <!-- Archive & Reset (Admin) -->
+      <section id="view-archive-reset" class="view">
+        <div class="section-header">
+          <h2>Archive & Reset</h2>
+          <button class="btn btn-secondary" onclick="App.showView('admin')">← Back</button>
+        </div>
+        
+        <div class="card">
+          <h3>📊 Current Status</h3>
+          <div id="archive-status" style="margin-bottom: 24px;">
+            <p class="empty-message">Loading...</p>
+          </div>
+        </div>
+        
+        <div class="card" style="border-top-color: var(--danger);">
+          <h3>📦 Archive & Reset for New Year</h3>
+          <p style="color: #666; margin-bottom: 16px;">
+            This will archive all observations and substitute requests from the current school year, then clear the active sheets for the new year.
+          </p>
+          <ul style="color: #666; margin-bottom: 16px; padding-left: 20px;">
+            <li>Creates backup sheets (Archive_Observations_YYYY-YYYY)</li>
+            <li>Clears Observations sheet</li>
+            <li>Clears SubstituteRequests sheet</li>
+            <li>Teachers and settings are preserved</li>
+          </ul>
+          <div style="background: var(--danger-light); padding: 16px; border-radius: var(--radius); margin-bottom: 16px;">
+            <strong style="color: var(--danger);">⚠ Warning:</strong> This action cannot be undone. Only proceed at the end of the school year.
+          </div>
+          <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; cursor: pointer;">
+            <input type="checkbox" id="confirm-archive" style="width: 20px; height: 20px;">
+            <span>I understand this will archive and clear all observation data</span>
+          </label>
+          <button class="btn btn-danger" onclick="App.archiveAndReset()" id="archive-btn" disabled>
+            🗄 Archive & Reset
+          </button>
+        </div>
+        
+        <div class="card">
+          <h3>🔍 Previous Archives</h3>
+          <div id="archives-list">
+            <p class="empty-message">Loading...</p>
+          </div>
+        </div>
+      </section>
+      
+      <!-- Branding Settings (Admin) -->
+      <section id="view-branding" class="view">
+        <div class="section-header">
+          <h2>Branding Settings</h2>
+          <button class="btn btn-secondary" onclick="App.showView('admin')">← Back</button>
+        </div>
+        
+        <div class="card">
+          <h3>🎨 School Logo Text</h3>
+          <p style="color: #666; margin-bottom: 16px;">
+            Change the branding text displayed in the header. This can be a short abbreviation (like "KCMS") or a longer name (like "William Perry").
+          </p>
+          
+          <div style="margin-bottom: 16px;">
+            <label style="display: block; font-weight: 500; margin-bottom: 8px;">Current Branding:</label>
+            <div id="current-branding-preview" class="school-logo" style="display: inline-block;"></div>
+          </div>
+          
+          <div style="margin-bottom: 16px;">
+            <label style="display: block; font-weight: 500; margin-bottom: 8px;">New Branding Text:</label>
+            <input type="text" id="new-branding-input" maxlength="20" placeholder="e.g., KCMS or William Perry" 
+                   style="width: 100%; max-width: 300px; padding: 12px; border: 2px solid var(--gray-200); border-radius: var(--radius); font-size: 1rem;"
+                   oninput="App.previewBranding(this.value)">
+          </div>
+          
+          <div style="margin-bottom: 24px;">
+            <label style="display: block; font-weight: 500; margin-bottom: 8px;">Preview:</label>
+            <div id="new-branding-preview" class="school-logo" style="display: inline-block;">Preview</div>
+          </div>
+          
+          <div style="background: var(--warning-light); padding: 16px; border-radius: var(--radius); margin-bottom: 16px;">
+            <strong style="color: #92400e;">⚠ Important:</strong> Changing the branding will update the CONFIG in the Apps Script code. You will need to create a new deployment for changes to take effect for all users.
+          </div>
+          
+          <div style="margin-bottom: 16px;">
+            <label style="display: block; font-weight: 500; margin-bottom: 8px;">Type "accept" to confirm you understand this will change the script:</label>
+            <input type="text" id="branding-confirm-input" placeholder="Type 'accept' here" 
+                   style="width: 200px; padding: 10px; border: 2px solid var(--gray-200); border-radius: var(--radius);"
+                   oninput="App.checkBrandingConfirm()">
+          </div>
+          
+          <button class="btn btn-primary" onclick="App.saveBranding()" id="save-branding-btn" disabled>
+            💾 Save Branding
+          </button>
+          
+          <div id="branding-result" style="display: none; margin-top: 16px; padding: 16px; border-radius: var(--radius);"></div>
+        </div>
+      </section>
+      
+      <!-- Read-Only Dashboard -->
+      <section id="view-readonly" class="view">
+        <div class="section-header">
+          <h2>Observation Overview</h2>
+        </div>
+        
+        <div class="stats-grid" id="readonly-stats">
+          <div class="stat-card">
+            <span class="stat-value" id="ro-stat-today">-</span>
+            <span class="stat-label">Today</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-value" id="ro-stat-month">-</span>
+            <span class="stat-label">This Month</span>
+          </div>
+        </div>
+        
+        <div class="card">
+          <h3>Today's Schedule</h3>
+          <div id="readonly-schedule" class="schedule-table">
+            <p class="empty-message">Loading...</p>
+          </div>
+        </div>
+      </section>
+      
+    </main>
+    
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="toast-container"></div>
+    
+    <!-- Modal Container -->
+    <div id="modal-overlay" class="modal-overlay" style="display:none;">
+      <div class="modal" id="modal">
+        <div class="modal-header">
+          <h3 id="modal-title">Modal</h3>
+          <button class="modal-close" onclick="App.closeModal()">×</button>
+        </div>
+        <div class="modal-body" id="modal-body">
+          <!-- Dynamic content -->
+        </div>
+        <div class="modal-footer" id="modal-footer">
+          <!-- Dynamic buttons -->
+        </div>
+      </div>
+    </div>
+    
+  </div>
+  
+  <!-- Store user data for JS -->
+  <script>
+    const USER = {
+      email: '<?= user.email ?>',
+      role: '<?= user.role ?>',
+      name: '<?= user.name ?>',
+      teacherId: '<?= user.teacherId ?>',
+      grade: <?= user.grade || 'null' ?>,
+      room: '<?= user.room || "" ?>'
+    };
+    
+    const CONFIG = {
+      grades: <?!= JSON.stringify(config.grades || [6, 7, 8]) ?>,
+      schoolYear: '<?= config.schoolYear || "2024-2025" ?>'
+    };
+  </script>
+  
+  <?!= include('JavaScript'); ?>
+</body>
+</html>
