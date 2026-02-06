@@ -1889,12 +1889,12 @@ App.showLoading = function(containerId) {
 };
 
 // ============================================================================
-// RADIAL ADMIN MENU - Always-visible hero navigation
+// ADMIN SIDEBAR NAVIGATION
 // ============================================================================
 
-// Click handlers for radial nav items (delegated)
+// Click handlers for admin sidebar items (delegated)
 document.addEventListener('click', function(e) {
-  var item = e.target.closest('.radial-nav-item');
+  var item = e.target.closest('.admin-sidebar-item');
   if (item && item.dataset.view) {
     App.showView(item.dataset.view);
   }
