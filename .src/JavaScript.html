@@ -44,6 +44,9 @@ App.init = function() {
   
   // Apply adaptive logo sizing
   this.applyLogoSizing();
+
+  // Populate welcome banner
+  this.setupWelcomeBanner();
   
   // Show appropriate initial view - always start on dashboard/overview, not admin
   if (USER.role === 'admin' || USER.role === 'teacher') {
@@ -87,6 +90,20 @@ App.applyLogoSizing = function(logoElement) {
   } else {
     logo.classList.add('extra-long');
   }
+};
+
+App.setupWelcomeBanner = function() {
+  var greeting = document.getElementById('welcome-greeting');
+  var dateEl = document.getElementById('welcome-date');
+  if (!greeting || !dateEl) return;
+
+  var hour = new Date().getHours();
+  var timeGreeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  var firstName = (USER.name || '').split(' ')[0];
+  greeting.textContent = timeGreeting + (firstName ? ', ' + firstName + '!' : '!');
+
+  var options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+  dateEl.textContent = new Date().toLocaleDateString('en-US', options);
 };
 
 App.setupNavigation = function() {
