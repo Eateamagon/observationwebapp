@@ -1889,105 +1889,14 @@ App.showLoading = function(containerId) {
 };
 
 // ============================================================================
-// RADIAL ADMIN MENU
+// RADIAL ADMIN MENU - Always-visible hero navigation
 // ============================================================================
 
-App.radialMenuOpen = false;
-App.radialFocusIndex = -1;
-
-App.toggleRadialMenu = function() {
-  var menu = document.getElementById('radial-menu');
-  var overlay = document.getElementById('radial-menu-overlay');
-  var trigger = document.getElementById('radial-trigger');
-  var hint = document.getElementById('radial-menu-hint');
-
-  if (!menu || !overlay || !trigger) return;
-
-  if (this.radialMenuOpen) {
-    this.closeRadialMenu();
-  } else {
-    menu.classList.remove('closing');
-    menu.classList.add('open');
-    overlay.classList.add('open');
-    trigger.setAttribute('aria-expanded', 'true');
-    if (hint) hint.style.opacity = '0';
-    this.radialMenuOpen = true;
-    this.radialFocusIndex = -1;
-  }
-};
-
-App.closeRadialMenu = function() {
-  var menu = document.getElementById('radial-menu');
-  var overlay = document.getElementById('radial-menu-overlay');
-  var trigger = document.getElementById('radial-trigger');
-  var hint = document.getElementById('radial-menu-hint');
-
-  if (!menu || !this.radialMenuOpen) return;
-
-  menu.classList.add('closing');
-  menu.classList.remove('open');
-  if (overlay) overlay.classList.remove('open');
-  if (trigger) {
-    trigger.setAttribute('aria-expanded', 'false');
-    trigger.focus();
-  }
-  if (hint) hint.style.opacity = '1';
-  this.radialMenuOpen = false;
-  this.radialFocusIndex = -1;
-
-  // Remove closing class after animation completes
-  setTimeout(function() {
-    if (menu) menu.classList.remove('closing');
-  }, 350);
-};
-
-App.radialMenuSelect = function(viewId) {
-  this.closeRadialMenu();
-  this.showView(viewId);
-};
-
-// Click handlers for radial items (delegated)
+// Click handlers for radial nav items (delegated)
 document.addEventListener('click', function(e) {
-  var item = e.target.closest('.radial-item');
+  var item = e.target.closest('.radial-nav-item');
   if (item && item.dataset.view) {
-    App.radialMenuSelect(item.dataset.view);
-  }
-});
-
-// Keyboard navigation for radial menu
-document.addEventListener('keydown', function(e) {
-  var menu = document.getElementById('radial-menu');
-  if (!menu) return;
-
-  // Close on Escape
-  if (e.key === 'Escape' && App.radialMenuOpen) {
-    App.closeRadialMenu();
-    e.preventDefault();
-    return;
-  }
-
-  if (!App.radialMenuOpen) return;
-
-  var items = menu.querySelectorAll('.radial-item');
-  var total = items.length;
-
-  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
-    e.preventDefault();
-    App.radialFocusIndex = (App.radialFocusIndex + 1) % total;
-    items[App.radialFocusIndex].focus();
-  } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
-    e.preventDefault();
-    App.radialFocusIndex = (App.radialFocusIndex - 1 + total) % total;
-    items[App.radialFocusIndex].focus();
-  } else if (e.key === 'Enter' || e.key === ' ') {
-    if (App.radialFocusIndex >= 0 && items[App.radialFocusIndex]) {
-      e.preventDefault();
-      var viewId = items[App.radialFocusIndex].dataset.view;
-      if (viewId) App.radialMenuSelect(viewId);
-    }
-  } else if (e.key === 'Tab') {
-    // Close menu if user tabs away
-    App.closeRadialMenu();
+    App.showView(item.dataset.view);
   }
 });
 
