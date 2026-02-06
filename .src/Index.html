@@ -197,52 +197,46 @@
           <h2>Admin Dashboard</h2>
         </div>
         
-        <!-- Radial Admin Menu -->
-        <div class="radial-menu-wrapper" style="margin-bottom: 24px;">
-          <div class="radial-menu-container" id="radial-menu-container">
-            <button class="radial-trigger" id="radial-trigger" onclick="App.toggleRadialMenu()" aria-haspopup="true" aria-expanded="false" aria-label="Admin Tools">
-              <span class="radial-trigger-icon" id="radial-trigger-icon">&#9881;</span>
+        <!-- Admin Tools Dropdown -->
+        <div class="admin-dropdown" id="admin-dropdown" style="margin-bottom: 24px;">
+          <button class="admin-dropdown-trigger" id="admin-dropdown-trigger" onclick="App.toggleAdminDropdown()" aria-haspopup="true" aria-expanded="false">
+            &#9881; Admin Tools
+          </button>
+          <div class="admin-dropdown-menu" id="admin-dropdown-menu" role="menu" aria-label="Admin Tools">
+            <button class="admin-dropdown-item admin-dropdown-item-highlight" role="menuitem" data-view="sub-requests">
+              <span class="admin-dropdown-item-icon">&#128203;</span>
+              <span>Sub Requests</span>
             </button>
-            <div class="radial-menu" id="radial-menu" role="menu" aria-label="Admin Tools">
-              <button class="radial-item radial-item-highlight" role="menuitem" style="--i: 0" data-view="sub-requests" aria-label="Sub Requests" tabindex="-1">
-                <span class="radial-item-icon">&#128203;</span>
-                <span class="radial-item-label">Sub Requests</span>
-              </button>
-              <button class="radial-item radial-item-highlight" role="menuitem" style="--i: 1" data-view="access-requests" aria-label="Access Requests" id="access-requests-btn" tabindex="-1">
-                <span class="radial-item-icon">&#128273;</span>
-                <span class="radial-item-label">Access Requests</span>
-              </button>
-              <button class="radial-item" role="menuitem" style="--i: 2" data-view="all-observations" aria-label="All Observations" tabindex="-1">
-                <span class="radial-item-icon">&#128202;</span>
-                <span class="radial-item-label">All Observations</span>
-              </button>
-              <button class="radial-item" role="menuitem" style="--i: 3" data-view="audit-log" aria-label="Audit Log" tabindex="-1">
-                <span class="radial-item-icon">&#128220;</span>
-                <span class="radial-item-label">Audit Log</span>
-              </button>
-              <button class="radial-item" role="menuitem" style="--i: 4" data-view="prep-periods" aria-label="Unavailable Times" tabindex="-1">
-                <span class="radial-item-icon">&#128683;</span>
-                <span class="radial-item-label">Unavailable Times</span>
-              </button>
-              <button class="radial-item" role="menuitem" style="--i: 5" data-view="bulk-import" aria-label="Import Teachers" tabindex="-1">
-                <span class="radial-item-icon">&#128229;</span>
-                <span class="radial-item-label">Import Teachers</span>
-              </button>
-              <button class="radial-item" role="menuitem" style="--i: 6" data-view="branding" aria-label="Branding" tabindex="-1">
-                <span class="radial-item-icon">&#127912;</span>
-                <span class="radial-item-label">Branding</span>
-              </button>
-              <button class="radial-item" role="menuitem" style="--i: 7" data-view="archive-reset" aria-label="Archive/Reset" tabindex="-1">
-                <span class="radial-item-icon">&#128230;</span>
-                <span class="radial-item-label">Archive/Reset</span>
-              </button>
-            </div>
+            <button class="admin-dropdown-item admin-dropdown-item-highlight" role="menuitem" data-view="access-requests" id="access-requests-btn">
+              <span class="admin-dropdown-item-icon">&#128273;</span>
+              <span>Access Requests</span>
+            </button>
+            <button class="admin-dropdown-item" role="menuitem" data-view="all-observations">
+              <span class="admin-dropdown-item-icon">&#128202;</span>
+              <span>All Observations</span>
+            </button>
+            <button class="admin-dropdown-item" role="menuitem" data-view="audit-log">
+              <span class="admin-dropdown-item-icon">&#128220;</span>
+              <span>Audit Log</span>
+            </button>
+            <button class="admin-dropdown-item" role="menuitem" data-view="prep-periods">
+              <span class="admin-dropdown-item-icon">&#128683;</span>
+              <span>Unavailable Times</span>
+            </button>
+            <button class="admin-dropdown-item" role="menuitem" data-view="bulk-import">
+              <span class="admin-dropdown-item-icon">&#128229;</span>
+              <span>Import Teachers</span>
+            </button>
+            <button class="admin-dropdown-item" role="menuitem" data-view="branding">
+              <span class="admin-dropdown-item-icon">&#127912;</span>
+              <span>Branding</span>
+            </button>
+            <button class="admin-dropdown-item" role="menuitem" data-view="archive-reset">
+              <span class="admin-dropdown-item-icon">&#128230;</span>
+              <span>Archive / Reset</span>
+            </button>
           </div>
-          <span class="radial-menu-hint" id="radial-menu-hint">Click the gear to open Admin Tools</span>
         </div>
-
-        <!-- Radial Menu Overlay -->
-        <div class="radial-menu-overlay" id="radial-menu-overlay" onclick="App.toggleRadialMenu()"></div>
         
         <!-- Stats Cards -->
         <div class="stats-grid" id="admin-stats">

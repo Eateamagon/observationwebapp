@@ -1889,105 +1889,61 @@ App.showLoading = function(containerId) {
 };
 
 // ============================================================================
-// RADIAL ADMIN MENU
+// ADMIN TOOLS DROPDOWN
 // ============================================================================
 
-App.radialMenuOpen = false;
-App.radialFocusIndex = -1;
+App.adminDropdownOpen = false;
 
-App.toggleRadialMenu = function() {
-  var menu = document.getElementById('radial-menu');
-  var overlay = document.getElementById('radial-menu-overlay');
-  var trigger = document.getElementById('radial-trigger');
-  var hint = document.getElementById('radial-menu-hint');
-
-  if (!menu || !overlay || !trigger) return;
-
-  if (this.radialMenuOpen) {
-    this.closeRadialMenu();
+App.toggleAdminDropdown = function() {
+  if (this.adminDropdownOpen) {
+    this.closeAdminDropdown();
   } else {
-    menu.classList.remove('closing');
-    menu.classList.add('open');
-    overlay.classList.add('open');
-    trigger.setAttribute('aria-expanded', 'true');
-    if (hint) hint.style.opacity = '0';
-    this.radialMenuOpen = true;
-    this.radialFocusIndex = -1;
+    this.openAdminDropdown();
   }
 };
 
-App.closeRadialMenu = function() {
-  var menu = document.getElementById('radial-menu');
-  var overlay = document.getElementById('radial-menu-overlay');
-  var trigger = document.getElementById('radial-trigger');
-  var hint = document.getElementById('radial-menu-hint');
+App.openAdminDropdown = function() {
+  var menu = document.getElementById('admin-dropdown-menu');
+  var trigger = document.getElementById('admin-dropdown-trigger');
+  if (!menu || !trigger) return;
 
-  if (!menu || !this.radialMenuOpen) return;
-
-  menu.classList.add('closing');
-  menu.classList.remove('open');
-  if (overlay) overlay.classList.remove('open');
-  if (trigger) {
-    trigger.setAttribute('aria-expanded', 'false');
-    trigger.focus();
-  }
-  if (hint) hint.style.opacity = '1';
-  this.radialMenuOpen = false;
-  this.radialFocusIndex = -1;
-
-  // Remove closing class after animation completes
-  setTimeout(function() {
-    if (menu) menu.classList.remove('closing');
-  }, 350);
+  menu.classList.add('open');
+  trigger.setAttribute('aria-expanded', 'true');
+  this.adminDropdownOpen = true;
 };
 
-App.radialMenuSelect = function(viewId) {
-  this.closeRadialMenu();
-  this.showView(viewId);
-};
-
-// Click handlers for radial items (delegated)
-document.addEventListener('click', function(e) {
-  var item = e.target.closest('.radial-item');
-  if (item && item.dataset.view) {
-    App.radialMenuSelect(item.dataset.view);
-  }
-});
-
-// Keyboard navigation for radial menu
-document.addEventListener('keydown', function(e) {
-  var menu = document.getElementById('radial-menu');
+App.closeAdminDropdown = function() {
+  var menu = document.getElementById('admin-dropdown-menu');
+  var trigger = document.getElementById('admin-dropdown-trigger');
   if (!menu) return;
 
-  // Close on Escape
-  if (e.key === 'Escape' && App.radialMenuOpen) {
-    App.closeRadialMenu();
-    e.preventDefault();
+  menu.classList.remove('open');
+  if (trigger) trigger.setAttribute('aria-expanded', 'false');
+  this.adminDropdownOpen = false;
+};
+
+// Click handlers for dropdown items + close on outside click
+document.addEventListener('click', function(e) {
+  var item = e.target.closest('.admin-dropdown-item');
+  if (item && item.dataset.view) {
+    App.closeAdminDropdown();
+    App.showView(item.dataset.view);
     return;
   }
 
-  if (!App.radialMenuOpen) return;
+  // Close dropdown if clicking outside
+  if (App.adminDropdownOpen && !e.target.closest('.admin-dropdown')) {
+    App.closeAdminDropdown();
+  }
+});
 
-  var items = menu.querySelectorAll('.radial-item');
-  var total = items.length;
-
-  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+// Keyboard: Escape to close
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape' && App.adminDropdownOpen) {
+    App.closeAdminDropdown();
+    var trigger = document.getElementById('admin-dropdown-trigger');
+    if (trigger) trigger.focus();
     e.preventDefault();
-    App.radialFocusIndex = (App.radialFocusIndex + 1) % total;
-    items[App.radialFocusIndex].focus();
-  } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
-    e.preventDefault();
-    App.radialFocusIndex = (App.radialFocusIndex - 1 + total) % total;
-    items[App.radialFocusIndex].focus();
-  } else if (e.key === 'Enter' || e.key === ' ') {
-    if (App.radialFocusIndex >= 0 && items[App.radialFocusIndex]) {
-      e.preventDefault();
-      var viewId = items[App.radialFocusIndex].dataset.view;
-      if (viewId) App.radialMenuSelect(viewId);
-    }
-  } else if (e.key === 'Tab') {
-    // Close menu if user tabs away
-    App.closeRadialMenu();
   }
 });
 
