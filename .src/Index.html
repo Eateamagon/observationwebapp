@@ -197,52 +197,49 @@
           <h2>Admin Dashboard</h2>
         </div>
         
-        <!-- Radial Admin Menu -->
-        <div class="radial-menu-wrapper" style="margin-bottom: 24px;">
-          <div class="radial-menu-container" id="radial-menu-container">
-            <button class="radial-trigger" id="radial-trigger" onclick="App.toggleRadialMenu()" aria-haspopup="true" aria-expanded="false" aria-label="Admin Tools">
-              <span class="radial-trigger-icon" id="radial-trigger-icon">&#9881;</span>
-            </button>
-            <div class="radial-menu" id="radial-menu" role="menu" aria-label="Admin Tools">
-              <button class="radial-item radial-item-highlight" role="menuitem" style="--i: 0" data-view="sub-requests" aria-label="Sub Requests" tabindex="-1">
-                <span class="radial-item-icon">&#128203;</span>
-                <span class="radial-item-label">Sub Requests</span>
-              </button>
-              <button class="radial-item radial-item-highlight" role="menuitem" style="--i: 1" data-view="access-requests" aria-label="Access Requests" id="access-requests-btn" tabindex="-1">
-                <span class="radial-item-icon">&#128273;</span>
-                <span class="radial-item-label">Access Requests</span>
-              </button>
-              <button class="radial-item" role="menuitem" style="--i: 2" data-view="all-observations" aria-label="All Observations" tabindex="-1">
-                <span class="radial-item-icon">&#128202;</span>
-                <span class="radial-item-label">All Observations</span>
-              </button>
-              <button class="radial-item" role="menuitem" style="--i: 3" data-view="audit-log" aria-label="Audit Log" tabindex="-1">
-                <span class="radial-item-icon">&#128220;</span>
-                <span class="radial-item-label">Audit Log</span>
-              </button>
-              <button class="radial-item" role="menuitem" style="--i: 4" data-view="prep-periods" aria-label="Unavailable Times" tabindex="-1">
-                <span class="radial-item-icon">&#128683;</span>
-                <span class="radial-item-label">Unavailable Times</span>
-              </button>
-              <button class="radial-item" role="menuitem" style="--i: 5" data-view="bulk-import" aria-label="Import Teachers" tabindex="-1">
-                <span class="radial-item-icon">&#128229;</span>
-                <span class="radial-item-label">Import Teachers</span>
-              </button>
-              <button class="radial-item" role="menuitem" style="--i: 6" data-view="branding" aria-label="Branding" tabindex="-1">
-                <span class="radial-item-icon">&#127912;</span>
-                <span class="radial-item-label">Branding</span>
-              </button>
-              <button class="radial-item" role="menuitem" style="--i: 7" data-view="archive-reset" aria-label="Archive/Reset" tabindex="-1">
-                <span class="radial-item-icon">&#128230;</span>
-                <span class="radial-item-label">Archive/Reset</span>
-              </button>
+        <!-- Hero Radial Menu -->
+        <div class="radial-hero" id="radial-hero">
+          <div class="radial-hero-container" id="radial-menu-container" role="navigation" aria-label="Admin Tools">
+            <!-- Center Hub -->
+            <div class="radial-hub" id="radial-hub">
+              <span class="radial-hub-icon">&#9881;</span>
+              <span class="radial-hub-label">Admin<br>Tools</span>
             </div>
+            <!-- Radial Items - always visible, arranged in a circle -->
+            <button class="radial-nav-item radial-nav-highlight" style="--i: 0; --total: 8;" data-view="sub-requests" aria-label="Sub Requests" id="radial-sub-requests">
+              <span class="radial-nav-icon">&#128203;</span>
+              <span class="radial-nav-label">Sub Requests</span>
+            </button>
+            <button class="radial-nav-item radial-nav-highlight" style="--i: 1; --total: 8;" data-view="access-requests" aria-label="Access Requests" id="access-requests-btn">
+              <span class="radial-nav-icon">&#128273;</span>
+              <span class="radial-nav-label">Access Requests</span>
+            </button>
+            <button class="radial-nav-item" style="--i: 2; --total: 8;" data-view="all-observations" aria-label="All Observations">
+              <span class="radial-nav-icon">&#128202;</span>
+              <span class="radial-nav-label">All Observations</span>
+            </button>
+            <button class="radial-nav-item" style="--i: 3; --total: 8;" data-view="audit-log" aria-label="Audit Log">
+              <span class="radial-nav-icon">&#128220;</span>
+              <span class="radial-nav-label">Audit Log</span>
+            </button>
+            <button class="radial-nav-item" style="--i: 4; --total: 8;" data-view="prep-periods" aria-label="Unavailable Times">
+              <span class="radial-nav-icon">&#128683;</span>
+              <span class="radial-nav-label">Unavailable Times</span>
+            </button>
+            <button class="radial-nav-item" style="--i: 5; --total: 8;" data-view="bulk-import" aria-label="Import Teachers">
+              <span class="radial-nav-icon">&#128229;</span>
+              <span class="radial-nav-label">Import Teachers</span>
+            </button>
+            <button class="radial-nav-item" style="--i: 6; --total: 8;" data-view="branding" aria-label="Branding">
+              <span class="radial-nav-icon">&#127912;</span>
+              <span class="radial-nav-label">Branding</span>
+            </button>
+            <button class="radial-nav-item" style="--i: 7; --total: 8;" data-view="archive-reset" aria-label="Archive/Reset">
+              <span class="radial-nav-icon">&#128230;</span>
+              <span class="radial-nav-label">Archive/Reset</span>
+            </button>
           </div>
-          <span class="radial-menu-hint" id="radial-menu-hint">Click the gear to open Admin Tools</span>
         </div>
-
-        <!-- Radial Menu Overlay -->
-        <div class="radial-menu-overlay" id="radial-menu-overlay" onclick="App.toggleRadialMenu()"></div>
         
         <!-- Stats Cards -->
         <div class="stats-grid" id="admin-stats">
