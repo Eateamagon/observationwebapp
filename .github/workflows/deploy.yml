@@ -3,20 +3,27 @@ name: Deploy to Google Apps Script
 on:
   push:
     branches:
-      - main # or your default branch
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Setup Node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v4
         with:
-          node-version: '14' # Use a compatible Node.js version
+          node-version: '20' # This fixes the SyntaxError
+
       - name: Install clasp
         run: npm install -g @google/clasp
-      - name: Authenticate clasp
-        run: echo '${{ secrets.CLASPRC_JSON }}' > ~/.clasprc.json
-      - name: Deploy Apps Script
-        run: clasp push && clasp deploy
+
+      - name: Create clasprc.json
+        run: echo "${{ secrets.CLASPRC_JSON }}" > ~/.clasprc.json
+
+      - name: Push and Deploy
+        run: |
+          clasp push -f
+          clasp deploy --description "Auto-deploy $(date +'%Y-%m-%d %H:%M')"
