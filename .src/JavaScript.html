@@ -1889,61 +1889,14 @@ App.showLoading = function(containerId) {
 };
 
 // ============================================================================
-// ADMIN TOOLS DROPDOWN
+// RADIAL ADMIN MENU - Always-visible hero navigation
 // ============================================================================
 
-App.adminDropdownOpen = false;
-
-App.toggleAdminDropdown = function() {
-  if (this.adminDropdownOpen) {
-    this.closeAdminDropdown();
-  } else {
-    this.openAdminDropdown();
-  }
-};
-
-App.openAdminDropdown = function() {
-  var menu = document.getElementById('admin-dropdown-menu');
-  var trigger = document.getElementById('admin-dropdown-trigger');
-  if (!menu || !trigger) return;
-
-  menu.classList.add('open');
-  trigger.setAttribute('aria-expanded', 'true');
-  this.adminDropdownOpen = true;
-};
-
-App.closeAdminDropdown = function() {
-  var menu = document.getElementById('admin-dropdown-menu');
-  var trigger = document.getElementById('admin-dropdown-trigger');
-  if (!menu) return;
-
-  menu.classList.remove('open');
-  if (trigger) trigger.setAttribute('aria-expanded', 'false');
-  this.adminDropdownOpen = false;
-};
-
-// Click handlers for dropdown items + close on outside click
+// Click handlers for radial nav items (delegated)
 document.addEventListener('click', function(e) {
-  var item = e.target.closest('.admin-dropdown-item');
+  var item = e.target.closest('.radial-nav-item');
   if (item && item.dataset.view) {
-    App.closeAdminDropdown();
     App.showView(item.dataset.view);
-    return;
-  }
-
-  // Close dropdown if clicking outside
-  if (App.adminDropdownOpen && !e.target.closest('.admin-dropdown')) {
-    App.closeAdminDropdown();
-  }
-});
-
-// Keyboard: Escape to close
-document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape' && App.adminDropdownOpen) {
-    App.closeAdminDropdown();
-    var trigger = document.getElementById('admin-dropdown-trigger');
-    if (trigger) trigger.focus();
-    e.preventDefault();
   }
 });
 

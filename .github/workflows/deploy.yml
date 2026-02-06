@@ -29,4 +29,3 @@ jobs:
       - name: Push to Apps Script
         run: |
           clasp push -f
-          clasp deploy --description "Auto-deploy $(date +'%Y-%m-%d %H:%M')"
