@@ -197,69 +197,52 @@
           <h2>Admin Dashboard</h2>
         </div>
         
-        <!-- Admin Menu Toggle Button -->
-        <div class="admin-menu-header" style="margin-bottom: 24px;">
-          <button class="btn btn-primary admin-menu-toggle" onclick="App.toggleAdminMenu()" id="admin-menu-toggle">
-            ☰ Admin Tools
-          </button>
-        </div>
-        
-        <!-- Admin Sidebar Menu -->
-        <div class="admin-sidebar" id="admin-sidebar">
-          <div class="admin-sidebar-header">
-            <h3>Admin Tools</h3>
-            <button class="admin-sidebar-close" onclick="App.toggleAdminMenu()">×</button>
-          </div>
-          <div class="admin-sidebar-content">
-            <div class="admin-menu-section">
-              <div class="admin-menu-section-title">Action Required</div>
-              <button class="admin-menu-item highlight" onclick="App.showView('sub-requests'); App.toggleAdminMenu();">
-                <span class="admin-menu-icon">📋</span>
-                <span>Sub Requests</span>
+        <!-- Radial Admin Menu -->
+        <div class="radial-menu-wrapper" style="margin-bottom: 24px;">
+          <div class="radial-menu-container" id="radial-menu-container">
+            <button class="radial-trigger" id="radial-trigger" onclick="App.toggleRadialMenu()" aria-haspopup="true" aria-expanded="false" aria-label="Admin Tools">
+              <span class="radial-trigger-icon" id="radial-trigger-icon">&#9881;</span>
+            </button>
+            <div class="radial-menu" id="radial-menu" role="menu" aria-label="Admin Tools">
+              <button class="radial-item radial-item-highlight" role="menuitem" style="--i: 0" data-view="sub-requests" aria-label="Sub Requests" tabindex="-1">
+                <span class="radial-item-icon">&#128203;</span>
+                <span class="radial-item-label">Sub Requests</span>
               </button>
-              <button class="admin-menu-item highlight" onclick="App.showView('access-requests'); App.toggleAdminMenu();" id="access-requests-btn">
-                <span class="admin-menu-icon">🔑</span>
-                <span>Access Requests</span>
+              <button class="radial-item radial-item-highlight" role="menuitem" style="--i: 1" data-view="access-requests" aria-label="Access Requests" id="access-requests-btn" tabindex="-1">
+                <span class="radial-item-icon">&#128273;</span>
+                <span class="radial-item-label">Access Requests</span>
               </button>
-            </div>
-            <div class="admin-menu-section">
-              <div class="admin-menu-section-title">Reports</div>
-              <button class="admin-menu-item" onclick="App.showView('all-observations'); App.toggleAdminMenu();">
-                <span class="admin-menu-icon">📊</span>
-                <span>All Observations</span>
+              <button class="radial-item" role="menuitem" style="--i: 2" data-view="all-observations" aria-label="All Observations" tabindex="-1">
+                <span class="radial-item-icon">&#128202;</span>
+                <span class="radial-item-label">All Observations</span>
               </button>
-              <button class="admin-menu-item" onclick="App.showView('audit-log'); App.toggleAdminMenu();">
-                <span class="admin-menu-icon">📜</span>
-                <span>Audit Log</span>
+              <button class="radial-item" role="menuitem" style="--i: 3" data-view="audit-log" aria-label="Audit Log" tabindex="-1">
+                <span class="radial-item-icon">&#128220;</span>
+                <span class="radial-item-label">Audit Log</span>
               </button>
-            </div>
-            <div class="admin-menu-section">
-              <div class="admin-menu-section-title">Management</div>
-              <button class="admin-menu-item" onclick="App.showView('prep-periods'); App.toggleAdminMenu();">
-                <span class="admin-menu-icon">🚫</span>
-                <span>Unavailable Times</span>
+              <button class="radial-item" role="menuitem" style="--i: 4" data-view="prep-periods" aria-label="Unavailable Times" tabindex="-1">
+                <span class="radial-item-icon">&#128683;</span>
+                <span class="radial-item-label">Unavailable Times</span>
               </button>
-              <button class="admin-menu-item" onclick="App.showView('bulk-import'); App.toggleAdminMenu();">
-                <span class="admin-menu-icon">📥</span>
-                <span>Import Teachers</span>
+              <button class="radial-item" role="menuitem" style="--i: 5" data-view="bulk-import" aria-label="Import Teachers" tabindex="-1">
+                <span class="radial-item-icon">&#128229;</span>
+                <span class="radial-item-label">Import Teachers</span>
               </button>
-            </div>
-            <div class="admin-menu-section">
-              <div class="admin-menu-section-title">Settings</div>
-              <button class="admin-menu-item" onclick="App.showView('branding'); App.toggleAdminMenu();">
-                <span class="admin-menu-icon">🎨</span>
-                <span>Branding</span>
+              <button class="radial-item" role="menuitem" style="--i: 6" data-view="branding" aria-label="Branding" tabindex="-1">
+                <span class="radial-item-icon">&#127912;</span>
+                <span class="radial-item-label">Branding</span>
               </button>
-              <button class="admin-menu-item" onclick="App.showView('archive-reset'); App.toggleAdminMenu();">
-                <span class="admin-menu-icon">📦</span>
-                <span>Archive/Reset</span>
+              <button class="radial-item" role="menuitem" style="--i: 7" data-view="archive-reset" aria-label="Archive/Reset" tabindex="-1">
+                <span class="radial-item-icon">&#128230;</span>
+                <span class="radial-item-label">Archive/Reset</span>
               </button>
             </div>
           </div>
+          <span class="radial-menu-hint" id="radial-menu-hint">Click the gear to open Admin Tools</span>
         </div>
-        
-        <!-- Admin Sidebar Overlay -->
-        <div class="admin-sidebar-overlay" id="admin-sidebar-overlay" onclick="App.toggleAdminMenu()"></div>
+
+        <!-- Radial Menu Overlay -->
+        <div class="radial-menu-overlay" id="radial-menu-overlay" onclick="App.toggleRadialMenu()"></div>
         
         <!-- Stats Cards -->
         <div class="stats-grid" id="admin-stats">
