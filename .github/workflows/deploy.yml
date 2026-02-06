@@ -29,3 +29,4 @@ jobs:
       - name: Push to Apps Script
         run: |
           clasp push -f
+          clasp deploy -i AKfycbzAdoV02bS9j8uWQy36y7Aq06Fib_-e81onv1nsx5Rn4ZgNYd_PSDXz_CT5ITpe56t-rQ -d "Production Update"
