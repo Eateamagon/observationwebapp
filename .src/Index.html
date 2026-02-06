@@ -197,51 +197,52 @@
           <h2>Admin Dashboard</h2>
         </div>
         
-        <!-- Hero Radial Menu -->
-        <div class="radial-hero" id="radial-hero">
-          <div class="radial-hero-container" id="radial-menu-container" role="navigation" aria-label="Admin Tools">
-            <!-- Center Hub -->
-            <div class="radial-hub" id="radial-hub">
-              <span class="radial-hub-icon">&#9881;</span>
-              <span class="radial-hub-label">Admin<br>Tools</span>
+        <div class="admin-layout">
+          <!-- Left Sidebar - Admin Tools -->
+          <aside class="admin-sidebar" id="admin-sidebar" role="navigation" aria-label="Admin Tools">
+            <div class="admin-sidebar-header">
+              <span class="admin-sidebar-icon">&#9881;</span>
+              <span class="admin-sidebar-title">Admin Tools</span>
             </div>
-            <!-- Radial Items - always visible, arranged in a circle -->
-            <button class="radial-nav-item radial-nav-highlight" style="--i: 0; --total: 8;" data-view="sub-requests" aria-label="Sub Requests" id="radial-sub-requests">
-              <span class="radial-nav-icon">&#128203;</span>
-              <span class="radial-nav-label">Sub Requests</span>
-            </button>
-            <button class="radial-nav-item radial-nav-highlight" style="--i: 1; --total: 8;" data-view="access-requests" aria-label="Access Requests" id="access-requests-btn">
-              <span class="radial-nav-icon">&#128273;</span>
-              <span class="radial-nav-label">Access Requests</span>
-            </button>
-            <button class="radial-nav-item" style="--i: 2; --total: 8;" data-view="all-observations" aria-label="All Observations">
-              <span class="radial-nav-icon">&#128202;</span>
-              <span class="radial-nav-label">All Observations</span>
-            </button>
-            <button class="radial-nav-item" style="--i: 3; --total: 8;" data-view="audit-log" aria-label="Audit Log">
-              <span class="radial-nav-icon">&#128220;</span>
-              <span class="radial-nav-label">Audit Log</span>
-            </button>
-            <button class="radial-nav-item" style="--i: 4; --total: 8;" data-view="prep-periods" aria-label="Unavailable Times">
-              <span class="radial-nav-icon">&#128683;</span>
-              <span class="radial-nav-label">Unavailable Times</span>
-            </button>
-            <button class="radial-nav-item" style="--i: 5; --total: 8;" data-view="bulk-import" aria-label="Import Teachers">
-              <span class="radial-nav-icon">&#128229;</span>
-              <span class="radial-nav-label">Import Teachers</span>
-            </button>
-            <button class="radial-nav-item" style="--i: 6; --total: 8;" data-view="branding" aria-label="Branding">
-              <span class="radial-nav-icon">&#127912;</span>
-              <span class="radial-nav-label">Branding</span>
-            </button>
-            <button class="radial-nav-item" style="--i: 7; --total: 8;" data-view="archive-reset" aria-label="Archive/Reset">
-              <span class="radial-nav-icon">&#128230;</span>
-              <span class="radial-nav-label">Archive/Reset</span>
-            </button>
-          </div>
-        </div>
-        
-        <!-- Stats Cards -->
+            <nav class="admin-sidebar-nav">
+              <button class="admin-sidebar-item admin-sidebar-item-highlight" data-view="sub-requests" id="sidebar-sub-requests">
+                <span class="admin-sidebar-item-icon">&#128203;</span>
+                <span class="admin-sidebar-item-label">Sub Requests</span>
+              </button>
+              <button class="admin-sidebar-item admin-sidebar-item-highlight" data-view="access-requests" id="access-requests-btn">
+                <span class="admin-sidebar-item-icon">&#128273;</span>
+                <span class="admin-sidebar-item-label">Access Requests</span>
+              </button>
+              <button class="admin-sidebar-item" data-view="all-observations">
+                <span class="admin-sidebar-item-icon">&#128202;</span>
+                <span class="admin-sidebar-item-label">All Observations</span>
+              </button>
+              <button class="admin-sidebar-item" data-view="audit-log">
+                <span class="admin-sidebar-item-icon">&#128220;</span>
+                <span class="admin-sidebar-item-label">Audit Log</span>
+              </button>
+              <button class="admin-sidebar-item" data-view="prep-periods">
+                <span class="admin-sidebar-item-icon">&#128683;</span>
+                <span class="admin-sidebar-item-label">Unavailable Times</span>
+              </button>
+              <button class="admin-sidebar-item" data-view="bulk-import">
+                <span class="admin-sidebar-item-icon">&#128229;</span>
+                <span class="admin-sidebar-item-label">Import Teachers</span>
+              </button>
+              <button class="admin-sidebar-item" data-view="branding">
+                <span class="admin-sidebar-item-icon">&#127912;</span>
+                <span class="admin-sidebar-item-label">Branding</span>
+              </button>
+              <button class="admin-sidebar-item" data-view="archive-reset">
+                <span class="admin-sidebar-item-icon">&#128230;</span>
+                <span class="admin-sidebar-item-label">Archive / Reset</span>
+              </button>
+            </nav>
+          </aside>
+
+          <!-- Main Dashboard Content -->
+          <div class="admin-main">
+            <!-- Stats Cards -->
         <div class="stats-grid" id="admin-stats">
           <div class="stat-card">
             <span class="stat-value" id="stat-today">-</span>
@@ -281,8 +282,10 @@
             </div>
           </div>
         </div>
+          </div>
+        </div>
       </section>
-      
+
       <!-- Substitute Requests View (Admin) -->
       <section id="view-sub-requests" class="view">
         <div class="section-header">
