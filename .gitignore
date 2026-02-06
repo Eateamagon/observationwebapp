@@ -1,3 +1,11 @@
-node_modules/
-.clasp.json
+# Clasp / Google Auth
+.clasprc.json
 clasprc.json
+
+# Dependencies
+node_modules/
+npm-debug.log
+
+# OS files
+.DS_Store
+Thumbs.db
