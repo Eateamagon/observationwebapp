@@ -696,76 +696,59 @@ App.rescheduleObservation = function(id) {
 
 App.showObservationConfirmationModal = function(result) {
   var observationId = result.observationId || result.id;
-  
+
   var bodyHtml = '<div style="text-align: center;">' +
     '<div style="font-size: 48px; margin-bottom: 16px;">✅</div>' +
     '<p style="font-size: 1.1rem; margin-bottom: 20px;">' + (result.message || 'Observation scheduled successfully!') + '</p>' +
     '<div id="confirmation-actions" style="margin-top: 20px;">' +
-    '<p style="color: #666; margin-bottom: 16px;">Would you like to receive your observation form and calendar invite?</p>' +
-    '<button class="btn btn-gold btn-large" id="send-confirmation-btn" style="width: 100%;">📧 Send Confirmation & Form</button>' +
+    '<p style="color: #666; margin-bottom: 8px;">Sending confirmation email, form, and calendar invite...</p>' +
+    '<div style="display: flex; justify-content: center; margin-top: 12px;"><div class="spinner" style="width: 24px; height: 24px; border: 3px solid #e5e7eb; border-top-color: #d4a843; border-radius: 50%; animation: spin 0.8s linear infinite;"></div></div>' +
     '</div>' +
     '<div id="confirmation-result" style="display: none; margin-top: 20px;"></div>' +
     '</div>';
-  
+
   App.showModal('Observation Scheduled!', bodyHtml, [
-    { label: 'Close', class: 'btn-secondary', action: function() { 
-      App.closeModal(); 
-      App.showView('dashboard'); 
+    { label: 'Close', class: 'btn-secondary', action: function() {
+      App.closeModal();
+      App.showView('dashboard');
     }}
   ]);
-  
-  // Add click handler for send button
+
+  // Automatically send confirmation
   setTimeout(function() {
-    var sendBtn = document.getElementById('send-confirmation-btn');
-    if (sendBtn) {
-      sendBtn.onclick = function() {
-        App.sendObservationConfirmation(observationId);
-      };
-    }
+    App.sendObservationConfirmation(observationId);
   }, 100);
 };
 
 App.sendObservationConfirmation = function(observationId) {
-  var btn = document.getElementById('send-confirmation-btn');
   var resultDiv = document.getElementById('confirmation-result');
   var actionsDiv = document.getElementById('confirmation-actions');
-  
-  if (btn) {
-    btn.disabled = true;
-    btn.textContent = 'Sending...';
-  }
-  
+
   google.script.run
     .withSuccessHandler(function(result) {
       if (!result) {
+        if (actionsDiv) actionsDiv.style.display = 'none';
         if (resultDiv) {
           resultDiv.style.display = 'block';
-          resultDiv.innerHTML = '<p style="color: #ef4444;">Failed to send confirmation</p>';
-        }
-        if (btn) {
-          btn.disabled = false;
-          btn.textContent = '📧 Send Confirmation & Form';
+          resultDiv.innerHTML = '<p style="color: #ef4444;">Failed to send confirmation. You can still access the form from your dashboard.</p>';
         }
         return;
       }
-      
+
       if (result.error) {
+        if (actionsDiv) actionsDiv.style.display = 'none';
         if (resultDiv) {
           resultDiv.style.display = 'block';
           resultDiv.innerHTML = '<p style="color: #ef4444;">' + result.error + '</p>';
         }
-        if (btn) {
-          btn.disabled = false;
-          btn.textContent = '📧 Send Confirmation & Form';
-        }
         return;
       }
-      
+
       // Success - show form link
       if (actionsDiv) actionsDiv.style.display = 'none';
       if (resultDiv) {
         resultDiv.style.display = 'block';
-        resultDiv.innerHTML = 
+        resultDiv.innerHTML =
           '<div style="background: #dcfce7; padding: 16px; border-radius: 8px; margin-bottom: 16px;">' +
           '<p style="color: #166534; font-weight: bold; margin-bottom: 8px;">✓ ' + (result.message || 'Confirmation sent!') + '</p>' +
           '<p style="color: #166534; font-size: 0.9rem;">Check your email for the confirmation and calendar invite.</p>' +
@@ -778,13 +761,10 @@ App.sendObservationConfirmation = function(observationId) {
       }
     })
     .withFailureHandler(function(err) {
+      if (actionsDiv) actionsDiv.style.display = 'none';
       if (resultDiv) {
         resultDiv.style.display = 'block';
-        resultDiv.innerHTML = '<p style="color: #ef4444;">Error: ' + (err.message || err) + '</p>';
-      }
-      if (btn) {
-        btn.disabled = false;
-        btn.textContent = '📧 Send Confirmation & Form';
+        resultDiv.innerHTML = '<p style="color: #ef4444;">Error: ' + (err.message || err) + '. You can still access the form from your dashboard.</p>';
       }
     })
     .sendObservationConfirmation(observationId);
