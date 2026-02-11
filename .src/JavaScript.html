@@ -349,7 +349,7 @@ App.initScheduleFlow = function() {
   const gradeButtons = document.getElementById('grade-buttons');
   gradeButtons.innerHTML = CONFIG.grades.map(g => `
     <button class="grade-btn" data-grade="${g}" onclick="App.selectGrade(${g})">
-      Grade ${g}
+      ${g === 9 ? 'Electives/SPED' : 'Grade ' + g}
     </button>
   `).join('');
   
@@ -547,7 +547,7 @@ App.goToReview = function() {
   // Populate review
   document.getElementById('review-teacher').textContent = s.teacher.name;
   document.getElementById('review-room').textContent = s.teacher.room;
-  document.getElementById('review-grade').textContent = 'Grade ' + s.teacher.grade;
+  document.getElementById('review-grade').textContent = Number(s.teacher.grade) === 9 ? 'Electives/SPED' : 'Grade ' + s.teacher.grade;
   document.getElementById('review-date').textContent = this.formatDate(s.date);
   document.getElementById('review-time').textContent = 'Period(s) ' + s.selectedPeriods.join(', ');
   
@@ -851,8 +851,8 @@ App.loadAdminDashboard = function() {
         countSpan.textContent = `(${data.teachersNotObservedList.length})`;
         
         // Group teachers by grade
-        const byGrade = { 6: [], 7: [], 8: [] };
-        
+        const byGrade = { 6: [], 7: [], 8: [], 9: [] };
+
         data.teachersNotObservedList.forEach(t => {
           // Get all grades for this teacher
           const grades = t.grades || [t.grade];
@@ -865,45 +865,24 @@ App.loadAdminDashboard = function() {
             }
           });
         });
-        
-        teachersContainer.innerHTML = `
+
+        const gradeLabels = { 6: 'Grade 6', 7: 'Grade 7', 8: 'Grade 8', 9: 'Electives/SPED' };
+        const formatGrade = g => Number(g) === 9 ? 'Electives/SPED' : 'Grade ' + g;
+
+        teachersContainer.innerHTML = [6, 7, 8, 9].map(g => `
           <div class="grade-column">
-            <h4>Grade 6</h4>
-            ${byGrade[6].length > 0 
-              ? byGrade[6].map(t => `
+            <h4>${gradeLabels[g]}</h4>
+            ${byGrade[g].length > 0
+              ? byGrade[g].map(t => `
                   <div class="teacher-item">
                     <div class="teacher-name">${t.name}</div>
-                    <div class="teacher-grades">Grades: ${(t.grades || [t.grade]).join(', ')}</div>
+                    <div class="teacher-grades">${(t.grades || [t.grade]).map(gr => formatGrade(gr)).join(', ')}</div>
                   </div>
                 `).join('')
               : '<p class="empty-column">All complete ✓</p>'
             }
           </div>
-          <div class="grade-column">
-            <h4>Grade 7</h4>
-            ${byGrade[7].length > 0 
-              ? byGrade[7].map(t => `
-                  <div class="teacher-item">
-                    <div class="teacher-name">${t.name}</div>
-                    <div class="teacher-grades">Grades: ${(t.grades || [t.grade]).join(', ')}</div>
-                  </div>
-                `).join('')
-              : '<p class="empty-column">All complete ✓</p>'
-            }
-          </div>
-          <div class="grade-column">
-            <h4>Grade 8</h4>
-            ${byGrade[8].length > 0 
-              ? byGrade[8].map(t => `
-                  <div class="teacher-item">
-                    <div class="teacher-name">${t.name}</div>
-                    <div class="teacher-grades">Grades: ${(t.grades || [t.grade]).join(', ')}</div>
-                  </div>
-                `).join('')
-              : '<p class="empty-column">All complete ✓</p>'
-            }
-          </div>
-        `;
+        `).join('');
       }
     })
     .withFailureHandler(err => {
@@ -1392,7 +1371,7 @@ App.loadAccessRequests = function() {
             '<div style="font-size: 0.875rem; color: var(--gray-500);">' + r.email + '</div>' +
             '<div style="font-size: 0.875rem; color: var(--gray-500);">' +
               (r.room ? 'Room ' + r.room + ' • ' : '') +
-              (r.grade ? 'Grade ' + r.grade + ' • ' : '') +
+              (r.grade ? (Number(r.grade) === 9 ? 'Electives/SPED' : 'Grade ' + r.grade) + ' • ' : '') +
               'Requested: ' + r.requestedRole +
             '</div>' +
           '</div>' +

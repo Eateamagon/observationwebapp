@@ -131,9 +131,10 @@
         <div class="schedule-step" id="step-3" style="display:none;">
           <h3>Select Date</h3>
           <div class="date-picker-container">
-            <input type="date" id="observation-date" class="date-input" 
-                   onchange="App.onDateSelected(this.value)">
-            <p class="date-hint">Select a school day. Weekends are blocked.</p>
+            <input type="date" id="observation-date" class="date-input"
+                   onchange="App.onDateSelected(this.value)"
+                   oninput="App.onDateSelected(this.value)">
+            <p class="date-hint">Type a date (MM/DD/YYYY) or use the calendar picker. Weekends are blocked.</p>
           </div>
         </div>
         
@@ -360,6 +361,7 @@
               <option value="6">Grade 6</option>
               <option value="7">Grade 7</option>
               <option value="8">Grade 8</option>
+              <option value="9">Electives/SPED</option>
             </select>
             <button class="btn btn-gold" onclick="App.saveTeacherSchedules()">💾 Save All Changes</button>
           </div>
