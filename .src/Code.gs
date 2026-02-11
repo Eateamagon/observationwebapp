@@ -263,7 +263,7 @@ function getBellSchedule(grade) {
     return { error: 'Unauthorized' };
   }
   
-  // 6th grade has own schedule, 7th/8th/Electives/SPED share
+  // 6th grade has own schedule, 7th/8th/Electives/SPED/ELL share
   const scheduleGrade = Number(grade) === 6 ? 6 : 7;
   return Data.getBellSchedule(scheduleGrade);
 }
