@@ -39,8 +39,8 @@
       <!-- Teacher Dashboard View -->
       <section id="view-dashboard" class="view active">
 
-        <!-- Welcome Banner -->
-        <div class="welcome-banner">
+        <!-- Compact Welcome Bar -->
+        <div class="welcome-banner dash-animate" data-delay="0">
           <div class="welcome-text">
             <h2 class="welcome-greeting" id="welcome-greeting">Welcome back!</h2>
             <p class="welcome-subtitle">Here's your observation overview</p>
@@ -48,37 +48,40 @@
           <div class="welcome-date" id="welcome-date"></div>
         </div>
 
-        <!-- Status Card -->
-        <div class="status-card" id="status-card">
-          <div class="status-header">
-            <h3>Observation Requirement</h3>
-            <span id="current-month"></span>
+        <!-- Combined Status + Actions Row -->
+        <div class="dashboard-top-row">
+          <!-- Status Card (compact) -->
+          <div class="status-card dash-animate" id="status-card" data-delay="1">
+            <div class="status-header">
+              <h3>Observation Requirement</h3>
+              <span id="current-month"></span>
+            </div>
+            <div class="status-body">
+              <div class="status-metric" id="observation-count">
+                <span class="metric-value">-</span>
+                <span class="metric-label">This Year</span>
+              </div>
+              <div class="status-indicator" id="requirement-status">
+                <!-- Filled by JS -->
+              </div>
+            </div>
           </div>
-          <div class="status-body">
-            <div class="status-metric" id="observation-count">
-              <span class="metric-value">-</span>
-              <span class="metric-label">Observations This Year</span>
-            </div>
-            <div class="status-indicator" id="requirement-status">
-              <!-- Filled by JS -->
-            </div>
+
+          <!-- Quick Actions (compact, stacked) -->
+          <div class="dashboard-actions dash-animate" data-delay="2">
+            <button class="action-card action-card-primary" onclick="App.startNewObservation()">
+              <span class="action-icon">+</span>
+              <span class="action-label">Schedule Observation</span>
+            </button>
+            <a href="https://docs.google.com/document/d/1VAJlJ7SZpRo4wyuautRXpoGFR9RHV-UIz4LcbTwBfyU/copy" target="_blank" class="action-card action-card-gold">
+              <span class="action-icon">&#128221;</span>
+              <span class="action-label">Copy Observation Form</span>
+            </a>
           </div>
         </div>
 
-        <!-- Quick Actions -->
-        <div class="dashboard-actions">
-          <button class="action-card action-card-primary" onclick="App.startNewObservation()">
-            <span class="action-icon">+</span>
-            <span class="action-label">Schedule New Observation</span>
-          </button>
-          <a href="https://docs.google.com/document/d/1VAJlJ7SZpRo4wyuautRXpoGFR9RHV-UIz4LcbTwBfyU/copy" target="_blank" class="action-card action-card-gold">
-            <span class="action-icon">&#128221;</span>
-            <span class="action-label">Copy Observation Form</span>
-          </a>
-        </div>
-
-        <!-- My Upcoming Observations -->
-        <div class="card">
+        <!-- My Upcoming Observations (compact) -->
+        <div class="card dash-animate" data-delay="3">
           <h3>&#128197; Upcoming Observations</h3>
           <div id="my-observations-list" class="observations-list">
             <p class="empty-message">Loading...</p>
@@ -86,7 +89,7 @@
         </div>
 
         <!-- Report Problem Button -->
-        <div class="report-problem-section">
+        <div class="report-problem-section dash-animate" data-delay="4">
           <a href="mailto:etruslow@waynesboro.k12.va.us?subject=Observation%20System%20-%20Problem%20Report&body=Please%20describe%20the%20issue%20you%20encountered%3A%0A%0A"
              class="btn btn-secondary report-problem-btn">
             &#128027; Report Problem

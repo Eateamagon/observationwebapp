@@ -221,7 +221,11 @@ App.loadDashboard = function() {
       
       // Update header to show deadline instead of month
       document.getElementById('current-month').textContent = 'Due: ' + (status.deadline || 'May 22, 2025');
-      document.querySelector('#observation-count .metric-value').textContent = status.count || 0;
+      var metricEl = document.querySelector('#observation-count .metric-value');
+      metricEl.textContent = status.count || 0;
+      metricEl.classList.remove('pop');
+      void metricEl.offsetWidth; // force reflow
+      metricEl.classList.add('pop');
       
       const indicator = document.getElementById('requirement-status');
       if (status.hasMetRequirement) {
