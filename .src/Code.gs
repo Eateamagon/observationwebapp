@@ -34,7 +34,7 @@ const CONFIG = {
   SUB_COORDINATOR_EMAIL: 'dfolks@waynesboro.k12.va.us',
   
   // Grade levels at this school
-  GRADES: [6, 7, 8],
+  GRADES: [6, 7, 8, 9],
   
   // Allowed email domain (leave empty to allow any)
   ALLOWED_EMAIL_DOMAIN: 'waynesboro.k12.va.us',
@@ -263,7 +263,7 @@ function getBellSchedule(grade) {
     return { error: 'Unauthorized' };
   }
   
-  // 6th grade has own schedule, 7th/8th share
+  // 6th grade has own schedule, 7th/8th/Electives/SPED share
   const scheduleGrade = Number(grade) === 6 ? 6 : 7;
   return Data.getBellSchedule(scheduleGrade);
 }
