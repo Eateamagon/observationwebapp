@@ -1190,6 +1190,47 @@ function adminEditObservation(observationId, updates) {
 }
 
 /**
+ * Admin mark observation as completed (verified it took place)
+ * @param {string} observationId - Observation ID
+ * @return {Object} Result
+ */
+function adminMarkCompleted(observationId) {
+  const user = getCurrentUser();
+  if (!checkRole('admin')) {
+    return { error: 'Unauthorized' };
+  }
+
+  const lock = LockService.getScriptLock();
+  try {
+    if (!lock.tryLock(CONFIG.LOCK_TIMEOUT_MS)) {
+      return { error: 'System busy. Please try again.' };
+    }
+
+    const result = Data.updateObservation(observationId, {
+      status: 'completed',
+      completedAt: new Date().toISOString(),
+      completedBy: user.email,
+      modifiedAt: new Date().toISOString(),
+      modifiedBy: user.email
+    });
+
+    if (result.success) {
+      Data.logAudit({
+        action: 'ADMIN_MARK_COMPLETED',
+        userId: user.email,
+        details: JSON.stringify({ observationId }),
+        timestamp: new Date().toISOString()
+      });
+      return { success: true };
+    } else {
+      return { error: result.error || 'Failed to update' };
+    }
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
  * Admin delete observation
  * @param {string} observationId - Observation ID
  * @return {Object} Result
@@ -1901,7 +1942,8 @@ function getDashboardData() {
   
   const confirmedObs = Data.getAllObservations({ status: 'confirmed' });
   const pendingSubObs = Data.getAllObservations({ status: 'pending_sub' });
-  const allObs = confirmedObs.concat(pendingSubObs);
+  const completedObs = Data.getAllObservations({ status: 'completed' });
+  const allObs = confirmedObs.concat(pendingSubObs).concat(completedObs);
 
   // School year observations (for requirement tracking)
   const yearObs = allObs.filter(o => {

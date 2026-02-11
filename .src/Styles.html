@@ -42,29 +42,25 @@
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
-/* Animated Gradient Background */
+/* Background */
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   color: var(--gray-800);
   line-height: 1.5;
   min-height: 100vh;
-  background: linear-gradient(
-    135deg,
-    #E8DAEF 0%,
-    #D7BDE2 25%,
-    #C9A7D8 50%,
-    #D7BDE2 75%,
-    #E8DAEF 100%
-  );
-  background-size: 400% 400%;
-  animation: gradientShift 15s ease infinite;
-  background-attachment: fixed;
+  background: #E8DAEF;
+  overflow-x: hidden;
 }
 
-@keyframes gradientShift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+/* Fluid Physics Canvas */
+#fluid-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
 }
 
 /* Loading Overlay */
@@ -85,7 +81,7 @@ body {
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* App Container & Header */
-.app-container { min-height: 100vh; display: flex; flex-direction: column; }
+.app-container { min-height: 100vh; display: flex; flex-direction: column; position: relative; z-index: 1; }
 .app-header {
   background: var(--primary);
   border-bottom: 3px solid var(--secondary);
@@ -417,6 +413,17 @@ body {
   box-shadow: 0 6px 20px rgba(212, 172, 13, 0.5);
 }
 
+/* Success Button */
+.btn-success {
+  background: linear-gradient(135deg, var(--success) 0%, #16a34a 100%);
+  color: var(--white);
+  box-shadow: 0 2px 4px rgba(34, 197, 94, 0.2);
+}
+.btn-success:hover:not(:disabled) {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 6px 20px rgba(34, 197, 94, 0.4);
+}
+
 /* Button Sizes */
 .btn-large { padding: 14px 28px; font-size: 1rem; }
 .btn-small { padding: 6px 12px; font-size: 0.75rem; }
@@ -662,6 +669,7 @@ body {
 
 .status-badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
 .status-confirmed { background: var(--success-light); color: var(--success); }
+.status-completed { background: #dbeafe; color: #2563eb; }
 .status-pending { background: var(--secondary-light); color: #B7950B; }
 .status-canceled { background: var(--gray-200); color: var(--gray-600); }
 .status-approved { background: var(--success-light); color: var(--success); }

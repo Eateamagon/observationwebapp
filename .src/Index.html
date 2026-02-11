@@ -7,12 +7,15 @@
   <?!= include('Styles'); ?>
 </head>
 <body>
+  <!-- Fluid Physics Background -->
+  <canvas id="fluid-bg"></canvas>
+
   <!-- Loading Overlay -->
   <div id="loading-overlay" class="loading-overlay">
     <div class="spinner"></div>
     <p>Loading...</p>
   </div>
-  
+
   <!-- Main App Container -->
   <div id="app" class="app-container">
     
@@ -318,6 +321,7 @@
           <select id="filter-status" onchange="App.filterObservations()">
             <option value="">All Statuses</option>
             <option value="confirmed">Confirmed</option>
+            <option value="completed">Completed</option>
             <option value="pending_sub">Pending Sub</option>
             <option value="canceled">Canceled</option>
           </select>
