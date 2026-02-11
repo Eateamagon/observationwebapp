@@ -220,7 +220,7 @@ App.loadDashboard = function() {
       }
       
       // Update header to show deadline instead of month
-      document.getElementById('current-month').textContent = 'Due: ' + (status.deadline || 'May 22, 2025');
+      document.getElementById('current-month').textContent = 'Due: ' + (status.deadline || 'April 19, 2026');
       var metricEl = document.querySelector('#observation-count .metric-value');
       metricEl.textContent = status.count || 0;
       metricEl.classList.remove('pop');
@@ -1059,7 +1059,8 @@ App.loadAllObservations = function() {
             <tr>
               <th>Date</th>
               <th>Observer</th>
-              <th>Teacher</th>
+              <th></th>
+              <th>Observing</th>
               <th>Room</th>
               <th>Periods</th>
               <th>Status</th>
@@ -1070,9 +1071,10 @@ App.loadAllObservations = function() {
             ${observations.slice(0, 100).map(o => `
               <tr>
                 <td>${this.formatDate(o.date)}</td>
-                <td>${o.observerName}</td>
+                <td><strong>${o.observerName}</strong></td>
+                <td class="obs-arrow">&#10132;</td>
                 <td>${o.teacherName}</td>
-                <td>${o.room}</td>
+                <td><span class="room-badge">Rm ${o.room}</span></td>
                 <td>${Array.isArray(o.periods) ? o.periods.join(', ') : o.periods}</td>
                 <td>${this.getStatusBadge(o.status)}</td>
                 <td>
