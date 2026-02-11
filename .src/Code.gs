@@ -44,7 +44,7 @@ const CONFIG = {
   // ==========================================================================
   
   // Observation deadline day/month (year auto-calculated)
-  OBSERVATION_DEADLINE_MONTH: 5,  // May
+  OBSERVATION_DEADLINE_MONTH: 4,  // April
   OBSERVATION_DEADLINE_DAY: 19,   // 19th
   
   // Timezone
@@ -76,7 +76,7 @@ function getSchoolYear() {
 
 /**
  * Get observation deadline for current school year
- * Returns Date object for May 19 (or configured date) of spring semester
+ * Returns Date object for April 19 (or configured date) of spring semester
  */
 function getObservationDeadline() {
   const now = new Date();
@@ -1899,8 +1899,10 @@ function getDashboardData() {
   const endOfWeek = new Date(startOfWeek);
   endOfWeek.setDate(startOfWeek.getDate() + 6);
   
-  const allObs = Data.getAllObservations({ status: 'confirmed' });
-  
+  const confirmedObs = Data.getAllObservations({ status: 'confirmed' });
+  const pendingSubObs = Data.getAllObservations({ status: 'pending_sub' });
+  const allObs = confirmedObs.concat(pendingSubObs);
+
   // School year observations (for requirement tracking)
   const yearObs = allObs.filter(o => {
     const d = new Date(o.date);
