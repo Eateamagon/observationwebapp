@@ -349,7 +349,7 @@ App.initScheduleFlow = function() {
   const gradeButtons = document.getElementById('grade-buttons');
   gradeButtons.innerHTML = CONFIG.grades.map(g => `
     <button class="grade-btn" data-grade="${g}" onclick="App.selectGrade(${g})">
-      ${g === 9 ? 'Electives/SPED/ELL/ELL' : 'Grade ' + g}
+      ${g === 9 ? 'Electives/SPED/ELL' : 'Grade ' + g}
     </button>
   `).join('');
   
